@@ -1,0 +1,19 @@
+/* estilos.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&display=swap');
+
+body { 
+    font-family: 'Poppins', 'Ubuntu', Arial, sans-serif; 
+    margin: 40px; 
+    background-color: #070002;
+}
+
+h1 {
+    color: #ff5757;
+    font-weight: 600;
+}
+
+p {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #ffe683;
+}
