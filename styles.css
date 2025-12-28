@@ -16,40 +16,34 @@ body {
     z-index: -10;
 }
 
-h1 {
-    color: #ff5757;
-    font-weight: 600;
+.title-text {
+    font-size: 70px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
 }
-
-p {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #ffe683;
-}
-
 .gradient-text {
-    background: linear-gradient(90deg, #0dcaf0, #6f42c1);
+    background: linear-gradient(90deg, #28dfff, #7b4bfe);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-}
-.gradient-text-outline {
-    font-family: Arial; 
-    font-weight: 1000;
-    background: linear-gradient(90deg, #0dcaf0, #6f42c1);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-stroke: 2px rgb(221, 254, 255);
 }
 
 .default-text {
-    background: rgb(71, 22, 149) ;
+    background: rgb(22, 22, 149) ;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
+@media (max-width: 991.98px) {
+    .nav-button {
+        min-height: 180px;
+    }
+    .nav-button-text {
+       font-size: 40px !important;
+    }
+}
 /* Estilos para los botones de navegación */
 .nav-button {
     border: 2px solid rgba(13, 202, 240, 0.3) !important;
@@ -60,37 +54,79 @@ p {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
     position: relative;
     overflow: hidden;
+    z-index: 1;
 }
 
-/* Responsive adjustments */
-@media (max-width: 991.98px) {
-    .nav-button {
-        min-height: 180px;
-    }
-}
 
+/* Efecto hover en el botón */
 .nav-button:hover {
     transform: scale(1.20) !important;
     border-color: #0dcaf0 !important;
     box-shadow: 0 10px 25px rgba(13, 202, 240, 0.4) !important;
     background-color: rgba(33, 37, 41, 1) !important;
-    z-index: 1000;/*llevar al frente*/
+    z-index: 1000;
 }
 
-/* Efecto de brillo en hover */
+/* Animación del brillo del FONDO */
 .nav-button::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
+    top: 0%;
+    left: 100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(70deg, transparent, rgba(55, 248, 255, 0.145), transparent);
     transition: left 0.7s ease;
+    z-index: 1;
 }
 
 .nav-button:hover::before {
-    left: 100%;
+    left: -100%;
 }
 
+/* Texto con gradiente */
+.nav-button-text {
+    font-size: 30px;
+    background: linear-gradient(90deg, #3fefff, #cafffd, #3fefff);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: textGradient 1.3s linear infinite;
+}
 
+/* Hover: Color plano animado */
+.nav-button:hover .nav-button-text {
+    /* 1. QUITAR el background-clip */
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    
+    /* 2. QUITAR el gradiente */
+    background: none;
+    
+    /* 3. Poner color sólido directo */
+    color: rgb(229, 211, 211); /* Color inicial de la animación */
+    
+    /* 4. Animar el color */
+    animation: colorChange 1.2s linear infinite;
+}
+
+@keyframes textGradient {
+    0% { background-position: 200% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes colorChange {
+    0% { 
+        color: rgb(241, 255, 255);
+        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
+    }
+    50% { 
+        color: rgb(161, 247, 255);
+        text-shadow: 0 0 2px rgba(0, 234, 255, 0.881);
+    }
+    100% { 
+        color: rgb(241, 255, 255);
+        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
+    }
+}
