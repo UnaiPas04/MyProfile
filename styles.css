@@ -4,7 +4,16 @@
 body { 
     font-family: 'Poppins', 'Ubuntu', Arial, sans-serif; 
     margin: 40px; 
-    background-color: #070002;
+    background-color: rgba(255, 255, 255, 0);
+    min-height: 100vh;
+}
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -10;
 }
 
 h1 {
@@ -17,3 +26,71 @@ p {
     line-height: 1.6;
     color: #ffe683;
 }
+
+.gradient-text {
+    background: linear-gradient(90deg, #0dcaf0, #6f42c1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.gradient-text-outline {
+    font-family: Arial; 
+    font-weight: 1000;
+    background: linear-gradient(90deg, #0dcaf0, #6f42c1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: 2px rgb(221, 254, 255);
+}
+
+.default-text {
+    background: rgb(71, 22, 149) ;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Estilos para los botones de navegación */
+.nav-button {
+    border: 2px solid rgba(13, 202, 240, 0.3) !important;
+    border-radius: 20px !important;
+    transition: all 0.3s ease !important;
+    text-decoration: none !important;
+    background-color: rgba(33, 37, 41, 0.9) !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .nav-button {
+        min-height: 180px;
+    }
+}
+
+.nav-button:hover {
+    transform: scale(1.20) !important;
+    border-color: #0dcaf0 !important;
+    box-shadow: 0 10px 25px rgba(13, 202, 240, 0.4) !important;
+    background-color: rgba(33, 37, 41, 1) !important;
+    z-index: 1000;/*llevar al frente*/
+}
+
+/* Efecto de brillo en hover */
+.nav-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.7s ease;
+}
+
+.nav-button:hover::before {
+    left: 100%;
+}
+
+

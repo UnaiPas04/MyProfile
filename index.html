@@ -12,9 +12,76 @@
 
 		<!-- Cargar archivo CSS externo -->
 		<link rel="stylesheet" href="styles.css">
+
+		<!-- Three.js desde CDN -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+		<!-- Controles de órbita -->
+		<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
 	</head>
-	<body>
-		<h1>Welcome to My Profile</h1>
-		<p>This is the beginning of my portfolio website aaa.</p>
-	</body>
+	<body class="bg-dark text-light">
+    <div class="container py-5">
+
+		<div id="canvas-container"></div>
+        <!-- Encabezado -->
+        <header class="text-center mt-5 mb-5">
+            <h1 class="display-4 fw-bold gradient-text">My Profile</h1>
+        </header>
+        
+        <!-- Contenedor principal -->
+        <main>
+            <!-- Grid de botones -->
+            <div class="row justify-content-center">
+                
+                <div class="col-md-12 col-lg-6 mt-4">
+                    <a href="softwareEngineering.html" class="nav-button btn btn-dark btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <h4 class="fw-bold">Software Engineering</h4>
+                    </a>
+                </div>
+                
+                <div class="col-md-12 col-lg-6 mt-4">
+                    <a href="proyects3D.html" class="nav-button btn btn-dark btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <h4 class="fw-bold">3D Projects</h4>
+                    </a>
+                </div>
+                <!--
+                <div class="col-md-12 col-lg-4 mt-4">
+                    <a href="proyects2D&TypeDesign.html" class="nav-button btn btn-dark btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <h4 class="fw-bold">2D & Type Design</h4>
+                    </a>
+                </div>
+                -->
+                <div class="col-md-12 col-lg-6 mt-4">
+                    <a href="https://github.com/UnaiPas04" 
+					target="_blank" 
+       				rel="noopener noreferrer"
+					class="nav-button btn btn-dark btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <h4 class="fw-bold">My Github</h4>
+                    </a>
+                </div>
+                <div class="col-md-12 col-lg-6 mt-4">
+                    <a href="https://unai-pas-tor-04.itch.io" 
+					target="_blank" 
+       				rel="noopener noreferrer"
+					class="nav-button btn btn-dark btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                        <h4 class="fw-bold">My Ich.io</h4>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Panel informativo -->
+            <div class="alert alert-info alert-dismissible fade show mt-5 mx-auto" style="max-width: 800px;">
+                <div class="d-flex align-items-center">
+                    <div>
+                        <h5 class="gradient-text">¡Prueba los proyectos de Ich.io!</h5>
+                        <p class="default-text">Encontrarás varios juegos programados en Unity</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </main>
+    </div>
+    <!-- JS Personalizado -->
+    <script src="mainScript.js"></script>
+	<script src="backgroundModel.js"></script>
+</body>
 </html>
