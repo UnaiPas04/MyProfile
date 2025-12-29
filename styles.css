@@ -16,6 +16,19 @@ body {
     z-index: -10;
 }
 
+.main-button{
+    width: 400px;
+}
+
+@media (max-width: 991.98px) {
+    .nav-button {
+        min-height: 180px;
+    }
+    .nav-button-text {
+       font-size: 40px !important;
+    }
+}
+
 .title-text {
     font-size: 70px;
     font-weight: bold;
@@ -36,22 +49,15 @@ body {
     color: transparent;
 }
 
-@media (max-width: 991.98px) {
-    .nav-button {
-        min-height: 180px;
-    }
-    .nav-button-text {
-       font-size: 40px !important;
-    }
-}
+
 /* Estilos para los botones de navegación */
 .nav-button {
-    border: 2px solid rgba(13, 202, 240, 0.3) !important;
-    border-radius: 20px !important;
-    transition: all 0.3s ease !important;
-    text-decoration: none !important;
-    background-color: rgba(33, 37, 41, 0.9) !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+    border: 2px solid rgba(13, 202, 240, 0.3);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    background-color: rgba(33, 37, 41, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -60,11 +66,35 @@ body {
 
 /* Efecto hover en el botón */
 .nav-button:hover {
-    transform: scale(1.20) !important;
-    border-color: #0dcaf0 !important;
-    box-shadow: 0 10px 25px rgba(13, 202, 240, 0.4) !important;
-    background-color: rgba(33, 37, 41, 1) !important;
+    transform: scale(1.20);
+    border-color: #25dbff;
+    box-shadow: 0 0px 25px rgba(30, 218, 255, 0.4);
+    background-color: rgba(33, 37, 41, 1);
+    animation: colorChangeButtonBorder 1.2s linear infinite;
     z-index: 1000;
+    
+}
+@keyframes colorChange {
+    0%, 100% { 
+        color: rgb(241, 255, 255);
+        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
+    }
+    50% { 
+        color: rgb(161, 247, 255);
+        text-shadow: 0 0 2px rgba(0, 234, 255, 0.881);
+    }
+}
+@keyframes colorChangeButtonBorder {
+    0%, 100% {
+        border-color:rgb(241, 255, 255);
+        box-shadow: 
+            0 0 16px rgba(0, 234, 255, 1);
+    }
+    50% {
+        border-color: rgb(161, 247, 255);
+        box-shadow: 
+            0 0 7px rgba(0, 234, 255,  0.881);
+    }
 }
 
 /* Animación del brillo del FONDO */
@@ -117,16 +147,12 @@ body {
 }
 
 @keyframes colorChange {
-    0% { 
+    0%, 100% { 
         color: rgb(241, 255, 255);
         text-shadow: 0 0 5px rgba(0, 234, 255, 1);
     }
     50% { 
         color: rgb(161, 247, 255);
         text-shadow: 0 0 2px rgba(0, 234, 255, 0.881);
-    }
-    100% { 
-        color: rgb(241, 255, 255);
-        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
     }
 }
