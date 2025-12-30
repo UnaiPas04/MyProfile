@@ -46,17 +46,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 6. GEOMETRÍA
     //const loader = new THREE.FBXLoader();
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
     
     // Crear material de shader personalizado
     const waveShaderMaterial = new THREE.ShaderMaterial({
         uniforms: {
             time: { value: 0.0 },
             color1: { value: new THREE.Color(0x330088) },
-            color2: { value: new THREE.Color(0x8500a5) },
-            colorSpeed: {value: 80.0 },
+            color2: { value: new THREE.Color(0x5500aa) },
+            colorSpeed: {value: 3.0 },
             // Variables controlables
-            waveSpeed: { value: 0.8 },
+            waveSpeed: { value: 2 },
             waveAmp: { value: 0.1 },
             waveFreq: { value: 20.0 },
 
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
             void main() {
                 vec3 pos = position;
 
-                float WS_Oscilated = sin(time * 3.0) * waveSpeed;
+                float WS_Oscilated = (sin(time * 3.0)/2.0 + 0.5) * waveSpeed + 1.0;
 
                 // Ondas por eje con variables controlables
                 float waveX = sin(pos.x * waveFreq + WS_Oscilated + wavePhaseX) * waveAmp;
@@ -147,9 +147,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let t = aspectRatio*1;
         let targetScale = t * 1.5 + (1-t)*0.7;
         mesh.scale.set(targetScale, targetScale, targetScale);
-        // let t = screenWidth/300;
-        // let z = (1-(t))*1 +(t)*0.2;
-        // mesh.position.set(0, 0, z);
     }
 
     // 8. ANIMACIÓN
@@ -160,31 +157,54 @@ document.addEventListener('DOMContentLoaded', function() {
         Update(clock.getDelta());
     }
     const mouseTracker = new MouseTracker();
+
+    let vX=0, vY=0;
     function Update(delta){
 
         //waveShaderMaterial.uniforms.time.value += delta; 
         
         if(mesh == null) return;
-
-        //Rotacion segun mouse
+        
+        //Info mouse
         let normalizedMouseX = mouseTracker.getX(); //[0-1]
         let normalizedMouseY = mouseTracker.getY(); //[0-1]
         let mouseX= normalizedMouseX*2-1; //[-1, 1]
         let mouseY= normalizedMouseY*2-1; //[-1, 1]
 
-        var rotVel = [0.4*mouseY,0.4*mouseX];
-        mesh.rotation.x += rotVel[0]* delta;
-        mesh.rotation.y += rotVel[1] * delta;
+        let velMouseX = mouseTracker.getVelX();
+        let velMouseY = mouseTracker.getVelY();
 
+        if(Math.abs(velMouseX)>Math.abs(vX)){
+            vX = velMouseX;
+        }
+        else
+            vX*=0.99;
+        if(Math.abs(velMouseY)>Math.abs(vY)){
+            vY = velMouseY;
+        }
+        else
+            vY*=0.99;
+        //Rotacion segun mouse
+        
+        const MAX_VEL = 0.04;
+        var rotX = Clamp(100 * vY * delta, -MAX_VEL, MAX_VEL);
+        var rotY = Clamp(100 * vX * delta, -MAX_VEL, MAX_VEL);
+        mesh.rotation.x += rotX;
+        mesh.rotation.y += rotY;
         //Ruido animado
         waveShaderMaterial.uniforms.time.value += delta; 
 
-        let freq = 6 * (1 - Math.abs (mouseX * mouseY)) + 4;
+        let freq = 8 * (1 - Math.abs (mouseX * mouseY)) + 4;
         waveShaderMaterial.uniforms.waveFreq.value = freq; 
 
         renderer.render(scene, camera);
     }
     
+    function Clamp(val, min, max){
+        if(val > max) return max;
+        if(val < min) return min;
+        return val;
+    }
     // Iniciar animación
     animate();
 });
