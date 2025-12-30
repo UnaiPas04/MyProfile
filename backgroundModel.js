@@ -174,15 +174,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let velMouseX = mouseTracker.getVelX();
         let velMouseY = mouseTracker.getVelY();
 
-        if(Math.abs(velMouseX)>Math.abs(vX)){
+        if(Math.abs(velMouseX) > Math.abs(vX)){
             vX = velMouseX;
-        }
-        else
+        } else 
             vX*=0.99;
-        if(Math.abs(velMouseY)>Math.abs(vY)){
+        if(Math.abs(velMouseY) > Math.abs(vY)){
             vY = velMouseY;
-        }
-        else
+        } else
             vY*=0.99;
         //Rotacion segun mouse
         
