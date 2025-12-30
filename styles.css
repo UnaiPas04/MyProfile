@@ -22,7 +22,7 @@ body {
 
 @media (max-width: 991.98px) {
     .nav-button {
-        min-height: 180px;
+        /*min-height: 180px;*/
     }
     .nav-button-text {
        font-size: 40px !important;
@@ -52,12 +52,12 @@ body {
 
 /* Estilos para los botones de navegación */
 .nav-button {
-    border: 2px solid rgba(13, 202, 240, 0.3);
+    border: 0px solid #25dbff00;
     border-radius: 20px;
-    transition: all 0.3s ease;
+    box-shadow: 0 0px 1px rgba(30, 218, 255, 0);
+    transition: all 0.3s ease-out;
     text-decoration: none;
-    background-color: rgba(33, 37, 41, 0.2);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    background-color: rgba(33, 37, 41, 0);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -67,7 +67,7 @@ body {
 /* Efecto hover en el botón */
 .nav-button:hover {
     transform: scale(1.20);
-    border-color: #25dbff;
+    border: 2px solid #25dbfffa;
     box-shadow: 0 0px 25px rgba(30, 218, 255, 0.4);
     background-color: rgba(33, 37, 41, 1);
     animation: colorChangeButtonBorder 1.2s linear infinite;
@@ -117,7 +117,7 @@ body {
 /* Texto con gradiente */
 .nav-button-text {
     font-size: 30px;
-    background: linear-gradient(90deg, #3fefff, #cafffd, #3fefff);
+    background: linear-gradient(90deg, #30eeff, #5ae9ff, hsl(208, 100%, 93%));
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
