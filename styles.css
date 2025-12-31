@@ -1,32 +1,27 @@
 /* estilos.css */
 @import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&display=swap');
 
+
 body { 
     font-family: 'Poppins', 'Ubuntu', Arial, sans-serif; 
     margin: 40px; 
-    background-color: rgba(255, 255, 255, 0);
+    background-color: rgb(0, 0, 0);
     min-height: 100vh;
 }
-#canvas-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -10;
-}
+
+/* PESTAÑAS SECUNDARIAS */
+
+
+/* MENÚ INICIAL */
 
 .main-button{
     width: 400px;
 }
 
 @media (max-width: 991.98px) {
-    .nav-button {
-        /*min-height: 180px;*/
-    }
-    .nav-button-text {
+    /* .nav-button-text {
        font-size: 40px !important;
-    }
+    } */
 }
 
 .title-text {
@@ -52,12 +47,12 @@ body {
 
 /* Estilos para los botones de navegación */
 .nav-button {
-    border: 0px solid #25dbff00;
+    border: 0px solid #ffc52500;
     border-radius: 20px;
-    box-shadow: 0 0px 1px rgba(30, 218, 255, 0);
+    box-shadow: 0 0px 1px rgba(255, 199, 30, 0);
     transition: all 0.3s ease-out;
     text-decoration: none;
-    background-color: rgba(33, 37, 41, 0);
+    background-color: rgba(17, 10, 38, 0);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -67,33 +62,23 @@ body {
 /* Efecto hover en el botón */
 .nav-button:hover {
     transform: scale(1.20);
-    border: 2px solid #25dbfffa;
-    box-shadow: 0 0px 25px rgba(30, 218, 255, 0.4);
-    background-color: rgba(33, 37, 41, 1);
+    border: 2px solid;
+    background-color: rgba(22, 10, 38, 0.753);
     animation: colorChangeButtonBorder 1.2s linear infinite;
     z-index: 1000;
     
 }
-@keyframes colorChange {
-    0%, 100% { 
-        color: rgb(241, 255, 255);
-        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
-    }
-    50% { 
-        color: rgb(161, 247, 255);
-        text-shadow: 0 0 2px rgba(0, 234, 255, 0.881);
-    }
-}
+
 @keyframes colorChangeButtonBorder {
     0%, 100% {
-        border-color:rgb(241, 255, 255);
+        border-color:rgb(255, 255, 241);
         box-shadow: 
-            0 0 16px rgba(0, 234, 255, 1);
+            0 0 12px rgb(255, 238, 87);
     }
     50% {
-        border-color: rgb(161, 247, 255);
+        border-color:  rgb(250, 255, 161);
         box-shadow: 
-            0 0 7px rgba(0, 234, 255,  0.881);
+            0 0 6px rgba(255, 203, 45, 0.71);
     }
 }
 
@@ -105,7 +90,7 @@ body {
     left: 100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(70deg, transparent, rgba(55, 248, 255, 0.145), transparent);
+    background: linear-gradient(70deg, transparent, rgba(247, 96, 255, 0.191), transparent);
     transition: left 0.7s ease;
     z-index: 1;
 }
@@ -117,7 +102,7 @@ body {
 /* Texto con gradiente */
 .nav-button-text {
     font-size: 30px;
-    background: linear-gradient(90deg, #30eeff, #5ae9ff, hsl(208, 100%, 93%));
+    background: linear-gradient(90deg, #ffd859, #fffd94, #ffffef);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -148,11 +133,11 @@ body {
 
 @keyframes colorChange {
     0%, 100% { 
-        color: rgb(241, 255, 255);
-        text-shadow: 0 0 5px rgba(0, 234, 255, 1);
+        color: rgb(255, 255, 244);
+        text-shadow: 0 0 5px rgb(255, 226, 10);
     }
     50% { 
-        color: rgb(161, 247, 255);
-        text-shadow: 0 0 2px rgba(0, 234, 255, 0.881);
+        color: rgb(250, 255, 160);
+        text-shadow: 0 0 2px rgba(255, 166, 0, 0.95);
     }
 }

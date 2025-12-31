@@ -34,15 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     container.appendChild(renderer.domElement);
 
     // 5. AGREGAR ILUMINACIÓN
-    // Luz ambiental (suave)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    
-    // Luz direccional (para sombras)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 7);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
+    //al ser material wireframe no necesitamos
 
     // 6. GEOMETRÍA
     //const loader = new THREE.FBXLoader();
@@ -52,8 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const waveShaderMaterial = new THREE.ShaderMaterial({
         uniforms: {
             time: { value: 0.0 },
-            color1: { value: new THREE.Color(0x330088) },
-            color2: { value: new THREE.Color(0x5500aa) },
+            color1: { value: new THREE.Color(0x300055) },
+            color2: { value: new THREE.Color(0x500060) },
             colorSpeed: {value: 3.0 },
             // Variables controlables
             waveSpeed: { value: 2 },
@@ -174,14 +166,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let velMouseX = mouseTracker.getVelX();
         let velMouseY = mouseTracker.getVelY();
 
+        const DRAG = 0.98;
         if(Math.abs(velMouseX) > Math.abs(vX)){
             vX = velMouseX;
         } else 
-            vX*=0.99;
+            vX*=DRAG;
         if(Math.abs(velMouseY) > Math.abs(vY)){
             vY = velMouseY;
         } else
-            vY*=0.99;
+            vY*=DRAG;
         //Rotacion segun mouse
         
         const MAX_VEL = 0.04;
