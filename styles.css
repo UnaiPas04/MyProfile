@@ -9,19 +9,58 @@ body {
     min-height: 100vh;
 }
 
-/* PESTAÑAS SECUNDARIAS */
+/* general */
 
+h1{
+    font-size: 30pt;
+    color: #ffd859;
+}
+p{
+    font-size: 15pt;
+    color: #ffd859;
+}
 
-/* MENÚ INICIAL */
+/* software engineering window */
+.section{
+    min-width: 300pt;
+}
+.section-title{
+    background-color: #28dfff31;
+    height: 50pt;
+}
+.section-line{
+    background-color: #28dfff1e;
+    width: auto;
+    height: 30pt;
+}
+.emblem-container{
+    background-color: #ff282831;
+    width: 70pt;
+}
+.emblem-img{
+    width: 40pt;
+    height: 40pt;
+}
+/* Ventana renderizado */
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+}
+
+/* Menu inicial */
 
 .main-button{
     width: 400px;
 }
 
-@media (max-width: 991.98px) {
-    /* .nav-button-text {
-       font-size: 40px !important;
-    } */
+@media (max-width: 300px) {
+    .main-button{
+    width: 300px;
+}
 }
 
 .title-text {
