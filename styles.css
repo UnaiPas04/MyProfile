@@ -4,42 +4,64 @@
 
 body { 
     font-family: 'Poppins', 'Ubuntu', Arial, sans-serif; 
-    margin: 40px; 
-    background-color: rgb(0, 0, 0);
+    margin: 30px; 
+    background-color: rgb(14, 10, 18);
     min-height: 100vh;
+
+    min-width: 500px;
 }
 
 /* general */
 
 h1{
-    font-size: 30pt;
+    font-size: 32pt;
     color: #ffd859;
+    background: linear-gradient(90deg, #ffd859, #fffd94, #ffffef);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: textGradient 1.3s linear infinite;
+}
+@keyframes h-textGradient {
+    0% { background-position: 200% 50%; }
+    100% { background-position: 0% 50%; }
+}
+h2{
+    font-size: 25pt;
+    color: #fff6a8;
 }
 p{
     font-size: 15pt;
-    color: #ffd859;
+    color: #fffce6;
 }
 
 /* software engineering window */
 .section{
-    min-width: 300pt;
+    min-width: 350pt;
 }
 .section-title{
-    background-color: #28dfff31;
     height: 50pt;
 }
 .section-line{
-    background-color: #28dfff1e;
     width: auto;
     height: 30pt;
+    margin: 1px;
+}
+.section-experience{
+    width: auto;
+    margin:1;
+}
+.experience-img{
+    width: 37pt;
+    height: 37pt;
 }
 .emblem-container{
-    background-color: #ff282831;
     width: 70pt;
 }
 .emblem-img{
-    width: 40pt;
-    height: 40pt;
+    width: 50pt;
+    height: 50pt;
 }
 /* Ventana renderizado */
 #canvas-container {
@@ -57,10 +79,11 @@ p{
     width: 400px;
 }
 
+
 @media (max-width: 300px) {
     .main-button{
-    width: 300px;
-}
+        width: 300px;
+    }
 }
 
 .title-text {
