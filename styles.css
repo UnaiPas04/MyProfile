@@ -1,22 +1,28 @@
 /* estilos.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&family=Germania One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&family=New Rocker&family=Germania One&display=swap');
 
 
 body { 
     font-family: 'Poppins', 'Ubuntu', Arial, sans-serif; 
     margin: 30px; 
-    background-color: rgb(14, 10, 18);
+    
     min-height: 100vh;
 
     min-width: 500px;
+
+    background-color: rgb(14, 10, 18);
+    background-image: url('IMGs/0_fondo1_256.png');
+    background-repeat: repeat; 
+    background-size: 12pt 12pt;
+    background-position: 0 0;
 }
 
 /* general */
 
 h1{
+    font-family: 'New Rocker','Germania One','Poppins', 'Ubuntu', Arial, sans-serif; 
     font-size: 32pt;
-    color: #ffd859;
-    background: linear-gradient(90deg, #ffd859, #fffd94, #ffffef);
+    background: linear-gradient(60deg, #ffd859, #fffd94, #ffffe7,#fffd94);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -28,40 +34,45 @@ h1{
     100% { background-position: 0% 50%; }
 }
 h2{
+    font-family: 'Germania One','Poppins',  'Ubuntu', Arial, sans-serif; 
     font-size: 25pt;
     color: #fff6a8;
 }
 p{
+    font-family: 'Ubuntu', Arial, sans-serif; 
     font-size: 15pt;
-    color: #fffce6;
+    color: #fffad0;
 }
 
 /* software engineering window */
 .section{
     min-width: 350pt;
+    margin-top: 25pt;
 }
 .section-title{
     height: 50pt;
+    margin-bottom: -5pt;
 }
 .section-line{
     width: auto;
     height: 30pt;
-    margin: 1px;
+    margin: 1pt;
 }
 .section-experience{
     width: auto;
-    margin:1;
 }
 .experience-img{
-    width: 37pt;
-    height: 37pt;
+    width: 30pt;
+    height: 20pt;
+    margin-left: -4pt;
 }
 .emblem-container{
     width: 70pt;
 }
 .emblem-img{
-    width: 50pt;
-    height: 50pt;
+    width: 40pt;
+    height: 40pt;
+    margin: 5pt;
 }
 /* Ventana renderizado */
 #canvas-container {
