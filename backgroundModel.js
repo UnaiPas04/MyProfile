@@ -205,10 +205,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var rotY = Clamp(100 * vX * delta, -MAX_VEL, MAX_VEL);
         mesh.rotation.x += rotX;
         mesh.rotation.y += rotY;
+        
         //Ruido animado
         waveShaderMaterial.uniforms.time.value += delta; 
 
-        let freq = 8 * (1 - Math.abs (mouseX * mouseY)) + 4;
+        let freq = 6 * (1 - Math.abs (mouseX)) + 5;
         waveShaderMaterial.uniforms.waveFreq.value = freq; 
 
         renderer.render(scene, camera);
