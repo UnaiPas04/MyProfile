@@ -5,8 +5,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. CONFIGURAR ESCENA
     const scene = new THREE.Scene();
     const clock = new THREE.Clock();
-    scene.background = new THREE.Color(0x060005);
+   // scene.background = new THREE.Color(0x060005);
     
+    const textureLoader = new THREE.TextureLoader();
+    let backgroundTexture;
+    textureLoader.load('IMGs/0_fondo3_256.png', function(texture) {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+
+        scene.background = texture;
+        backgroundTexture = texture;
+        updateBackgroundTexture(container.clientWidth, container.clientHeight);
+    });
+   
+
     // 3. CONFIGURAR CÁMARA
     const aspect = container.clientWidth / container.clientHeight;
     const frustumSize = 5; // Tamaño del frustum (ajustable)
@@ -130,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderer.setSize(container.clientWidth, container.clientHeight);
         
         scaleModelByWidth(container.clientWidth, container.clientHeight);
+        updateBackgroundTexture(container.clientWidth, container.clientHeight);
     }
     function scaleModelByWidth(screenWidth, screenHeight) {
         if (!mesh) return;
@@ -139,6 +152,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let t = aspectRatio*1;
         let targetScale = t * 1.5 + (1-t)*0.7;
         mesh.scale.set(targetScale, targetScale, targetScale);
+    }
+    function updateBackgroundTexture(screenWidth, screenHeight) {
+        if (!backgroundTexture) return;
+        
+        const baseRepeat = 0.06;
+        const repeatX = baseRepeat * screenWidth;
+        const repeatY = baseRepeat * screenHeight;
+        
+        backgroundTexture.repeat.set(repeatX, repeatY);
+        backgroundTexture.needsUpdate = true;
     }
 
     // 8. ANIMACIÓN

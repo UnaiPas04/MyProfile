@@ -1,5 +1,5 @@
 /* estilos.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins&family=Ubuntu&family=Germania One&display=swap');
 
 
 body { 
@@ -109,12 +109,13 @@ p{
 
 /* Estilos para los botones de navegación */
 .nav-button {
+    font-family: 'Germania One','Poppins','Ubuntu',  Arial, sans-serif; 
     border: 0px solid #ffc52500;
     border-radius: 20px;
     box-shadow: 0 0px 1px rgba(255, 199, 30, 0);
     transition: all 0.3s ease-out;
     text-decoration: none;
-    background-color: rgba(17, 10, 38, 0);
+    background-color: rgba(0, 00, 0, 0);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -163,8 +164,8 @@ p{
 
 /* Texto con gradiente */
 .nav-button-text {
-    font-size: 30px;
-    background: linear-gradient(90deg, #ffd859, #fffd94, #ffffef);
+    font-size: 36px;
+    background: linear-gradient(90deg,  #fffd94,#ffd04f, #fffd94, #ffffef);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
