@@ -1,9 +1,9 @@
 class MouseTracker {
     constructor() {
-        this.x = 0;
-        this.y = 0;
-        this.lastX = 0;
-        this.lastY = 0;
+        this.x = 0.5;
+        this.y = 0.5;
+        this.lastX = this.x;
+        this.lastY = this.y;
         
         document.addEventListener('mousemove', this.update.bind(this));
     }

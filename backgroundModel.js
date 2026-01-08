@@ -165,15 +165,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 8. ANIMACIÓN
-    
+    const COMPUTER_FRAME_RATE = 60;
+    const MOBILE_FRAME_RATE = 20;
+    let t = 0;
+
     function animate() {
         requestAnimationFrame(animate);
+        //Update(clock.getDelta());
+        t+= clock.getDelta();
 
-        Update(clock.getDelta());
+        let delta;
+        if (window.innerHeight > window.innerWidth * 1.5)
+            delta = 1 / MOBILE_FRAME_RATE;
+        else
+            delta = 1 / COMPUTER_FRAME_RATE;
+
+        while(t > delta){
+            Update(delta);
+            t -= delta;
+        }
     }
     const mouseTracker = new MouseTracker();
 
-    let vX=0, vY=0;
+    let vX=0.2, vY=0.2;
     function Update(delta){
 
         //waveShaderMaterial.uniforms.time.value += delta; 
