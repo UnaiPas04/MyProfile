@@ -54,7 +54,7 @@ h2{
 p{
     font-family:  'Ubuntu', Arial, sans-serif; 
     font-size: 15pt;
-    font-weight: 800;
+    font-weight: 900;
     color: #fffad0;
 }
 
@@ -94,11 +94,23 @@ p{
 /* AboutMe */
 .abtme-img{
     width: 100%;
+    border: 6px solid #000000;
+    border-radius: 20px;
+    margin-bottom: 60px;
+}
+.abtme-txt{
+    margin-left: 40px;
 }
 
 @media (max-width: 767.5px) {
     .abtme-img{
         width: 120pt;
+    }
+    .abtme-txt{
+        margin-left: 0px;
+    }
+    .p-abtme{
+        font-size: 12pt;
     }
 }
 /* Menu inicial */
