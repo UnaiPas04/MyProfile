@@ -8,7 +8,7 @@ body {
 
 
     background-color: rgb(14, 10, 18);
-    background-image: url('IMGs/0_fondo1_256.png');
+    background-image: url('IMGs/0_fondo2_256.png');
     background-repeat: repeat; 
     background-size: 12.5pt 12.5pt;
     background-position: 0 0;
@@ -32,25 +32,29 @@ body {
 h1{
     font-family: 'New Rocker','Germania One','Poppins', 'Ubuntu', Arial, sans-serif; 
     font-size: 32pt;
-    background: linear-gradient(60deg, #ffd859, #fffd94, #ffffe7,#fffd94);
+    background: linear-gradient(90deg, #ffdd6d, #fffea6,#ffdd6d);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: textGradient 1.3s linear infinite;
+    animation: textGradient 1.1s linear infinite;
 }
 @keyframes h-textGradient {
-    0% { background-position: 200% 50%; }
-    100% { background-position: 0% 50%; }
+    0%,100% { background-position: 200% 50%; }
+    50% { background-position: 0% 50%; }
 }
 h2{
     font-family: 'Germania One','Poppins',  'Ubuntu', Arial, sans-serif; 
     font-size: 25pt;
-    color: #fff6a8;
+    background: linear-gradient(180deg, #fffca4, #ff7b00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 p{
-    font-family: 'Ubuntu', Arial, sans-serif; 
+    font-family:  'Ubuntu', Arial, sans-serif; 
     font-size: 15pt;
+    font-weight: 800;
     color: #fffad0;
 }
 
@@ -72,16 +76,18 @@ p{
     width: auto;
 }
 .experience-img{
-    width: 30pt;
-    height: 20pt;
-    margin-left: -4pt;
+    width: 52px;
+    height: 28px;
+    margin-right: -5pt;
+    margin-left: -10pt;
 }
 .emblem-container{
+    margin-top: 15pt;
     width: 70pt;
 }
 .emblem-img{
-    width: 40pt;
-    height: 40pt;
+    width: 50pt;
+    height: 50pt;
     margin: 5pt;
 }
 
