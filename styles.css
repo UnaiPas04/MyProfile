@@ -134,7 +134,8 @@ p{
 .proy3D-img:hover{
     transform: scale(1.5);
 }
-.proy3D-img.selected{
+/* .proy3D-img.selected */
+.proy3D-video{
     position: fixed;
     top: 50%;
     left: 50%;
