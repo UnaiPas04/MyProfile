@@ -77,13 +77,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             void main() {
                 vec3 pos = position;
-
-                float WS_Oscilated = (sin(time * 3.0)/2.0 + 0.5) * waveSpeed + 1.0;
-
-                // Ondas por eje con variables controlables
-                float waveX = sin(pos.x * waveFreq + WS_Oscilated + wavePhaseX) * waveAmp;
-                float waveY = cos(pos.y * waveFreq + WS_Oscilated + wavePhaseY) * waveAmp;
-                float waveZ = sin(pos.z * waveFreq + WS_Oscilated + wavePhaseZ) * waveAmp;
+                
+                float wavePhase = time * waveSpeed;
+                
+                float speedModulation = sin(time * 3.0) * 0.5;
+                float modulatedPhase = wavePhase + speedModulation;
+                
+                // Waves per axis with clean phase calculation
+                float waveX = sin(pos.x * waveFreq + modulatedPhase + wavePhaseX) * waveAmp;
+                float waveY = cos(pos.y * waveFreq + modulatedPhase + wavePhaseY) * waveAmp;
+                float waveZ = sin(pos.z * waveFreq + modulatedPhase + wavePhaseZ) * waveAmp;
                 
                 pos.x += waveX;
                 pos.y += waveY;
