@@ -119,6 +119,18 @@ p{
 .proy2D-div{
     margin-bottom: 20px;
 }
+.proy2D-dib{
+    height: 280px;
+    border: 2px solid rgba(0, 0, 0, 0); 
+    border-radius: 20px;
+}
+.proy2D-dib:hover, .proy2D-dib.selected{
+    border: 2px solid rgb(189, 255, 255); 
+    box-shadow: 0 0 6px rgba(0, 255, 255, 0.7);
+    z-index: 50;
+    transform: scale(1.5);
+}
+
 .proy2D-img{
     height: 170px;
     border: 2px solid rgba(0, 0, 0, 0); 
