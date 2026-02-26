@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Juego P2P</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        .error { color: red; }
+        .success { color: green; }
+        button:disabled { opacity: 0.5; }
+
+        .host-name { /*font-weight: bold;*/ color: #34495e; }
+        .player-name { color: #34495e; }
+        .player-list {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .player-list h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        .player-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .player-list li {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 3px;
+            border: 1px solid;
+            border-left: 10px solid;
+            
+            border-color: #3498db;
+        }
+        .player-list li.host {
+            background-color: #fffff6;
+            border-color: #ffed65;
+        }
+    </style>
+</head>
+<body>
+    <h2>Juego P2P con Salas</h2>
+    
+    <div id= "main-menu" style="display:block;">
+        <div id="name-section">
+        <input type="text" id="player-name" placeholder="Tu nombre" maxlength="20">
+        </div>
+        
+        <input id="roomCode" placeholder="Código de sala">
+
+        <div>
+            <button onclick="createRoom()" id="createBtn">Crear Sala</button>
+        </div>
+        
+        <div>
+            <button onclick="joinRoom()" id="joinBtn">Unirse</button>
+        </div>
+    </div>
+    
+    
+    <div id="game-area" style="display:none;">
+        <h3>ID de tu sala: <span id="displayRoomCode"></span></h3>
+        <div id="connection-status"></div>
+        
+        <!-- Lista de jugadores conectados -->
+        <div class="player-list">
+            <h4>Jugadores:</h4>
+            <ul id="players-list">
+                <!-- Se llena dinámicamente -->
+            </ul>
+        </div>
+        
+        <button onclick="cancelRoom()" id="cancelBtn">Atrás</button>
+        
+        <!-- Aquí va la lógica de tu juego -->
+        <div id="game-content" style="margin-top: 20px;">
+            <p>Aquí irá el contenido del juego...</p>
+        </div>
+    </div>
+    
+    <div id="error-message" class="error"></div>
+
+    <script>
+        let peer;
+        let conn;
+        let isHost = false;
+        let roomId = null;
+        let miNombre = '';
+        let jugadores = []; // Array de objetos { id, nombre, esHost }
+        
+        function createRoom() {
+            showError('');
+            
+            miNombre = document.getElementById('player-name').value.trim();
+
+            if(!miNombre){
+                showError('Elige un nombre');
+                return;
+            }
+            roomId = document.getElementById('roomCode').value.trim();
+    
+            // Si no pusieron código, generar uno de 4 dígitos
+            if (!roomId) {
+                roomId = Math.floor(1000 + Math.random() * 9000).toString();
+            } else if (!/^\d{4}$/.test(roomId)) {
+                showError('El código debe ser de 4 dígitos');
+                return;
+            }
+            
+            // Crear Peer con el código del input
+            peer = new Peer(roomId);
+            
+            peer.on('open', (id) => {
+                roomId = id;
+                isHost = true;
+                
+                // Agregarme a la lista de jugadores como host
+                jugadores = [{
+                    id: peer.id,
+                    nombre: miNombre,
+                    esHost: true
+                }];
+                
+                actualizarListaJugadores();
+                
+                setMainMenuEnabled(false);
+                document.getElementById('game-area').style.display = 'block';
+                document.getElementById('displayRoomCode').textContent = id;
+                
+                // Escuchar conexiones de jugadores
+                peer.on('connection', (connection) => {
+                    conn = connection;
+                    
+                    conn.on('data', (data) => {
+                        handleGameData(data);
+                    });
+                    
+                    conn.on('close', () => {
+                        // Quitar jugador desconectado de la lista
+                        jugadores = jugadores.filter(j => j.id !== conn.peer);
+                        actualizarListaJugadores();
+                    });
+                    
+                    // Enviar lista actual de jugadores al recién conectado
+                    setTimeout(() => {
+                        conn.send({
+                            type: 'lista_jugadores',
+                            jugadores: jugadores
+                        });
+                    }, 500);
+                });
+            });
+            
+            peer.on('error', (error) => {
+                showError('Error al crear sala: ' + error.type);
+                setMainMenuEnabled(true);
+            });
+        }
+        
+        function joinRoom() {
+            const roomId = document.getElementById('roomCode').value.trim();
+
+            miNombre = document.getElementById('player-name').value.trim();
+
+            if(!miNombre){
+                showError('Elige un nombre');
+                return;
+            }
+
+            if (!roomId) {
+                showError('Ingresa un código de sala');
+                return;
+            }
+            
+            
+            showError('');
+            
+            peer = new Peer();
+            
+            peer.on('open', () => {
+                conn = peer.connect(roomId);
+                
+                // Timeout por si no se puede conectar
+                const connectionTimeout = setTimeout(() => {
+                    showError('No se pudo conectar a la sala.');
+                    setMainMenuEnabled(true);
+                    peer.destroy();
+                }, 5000);
+                
+                conn.on('open', () => {
+                    clearTimeout(connectionTimeout);
+                    isHost = false;
+                    
+                    setMainMenuEnabled(false);
+                    document.getElementById('game-area').style.display = 'block';
+                    document.getElementById('displayRoomCode').textContent = roomId;
+                    
+                    // Enviar mi nombre al host
+                    conn.send({ 
+                        type: 'nuevo_jugador',
+                        nombre: miNombre,
+                        id: peer.id
+                    });
+                });
+                
+                conn.on('data', (data) => {
+                    handleGameData(data);
+                });
+                
+                conn.on('close', () => {
+                    jugadores = [];
+                    resetToLobby();
+                    showError("El host cerró la sala");
+                });
+                
+                conn.on('error', (error) => {
+                    showError('Error de conexión: ' + error);
+                });
+            });
+            
+            peer.on('error', (error) => {
+                showError('Error al unirse: ' + error.type);
+                setMainMenuEnabled(true);
+            });
+        }
+        
+        function handleGameData(data) {
+            console.log('Datos recibidos:', data);
+            
+            switch(data.type) {
+                case 'nuevo_jugador':
+                    // Host recibe nuevo jugador
+                    const nuevoJugador = {
+                        id: data.id,
+                        nombre: data.nombre,
+                        esHost: false
+                    };
+                    jugadores.push(nuevoJugador);
+                    actualizarListaJugadores();
+                    
+                    // Notificar a todos (incluyendo al nuevo) la lista actualizada
+                    if (conn) {
+                        conn.send({
+                            type: 'lista_jugadores',
+                            jugadores: jugadores
+                        });
+                    }
+                    break;
+                    
+                case 'lista_jugadores':
+                    // Jugador recibe lista actualizada del host
+                    jugadores = data.jugadores;
+                    actualizarListaJugadores();
+                    break;
+                    
+                default:
+            }
+        }
+        
+        function actualizarListaJugadores() {
+            const listaElement = document.getElementById('players-list');
+            listaElement.innerHTML = '';
+            
+            jugadores.forEach(jugador => {
+                const li = document.createElement('li');
+                li.className = jugador.esHost ? 'host' : '';
+                
+                const icono = jugador.esHost ? '👑 ' : '🎮 ';
+                const nombreMostrar = jugador.esHost ? 
+                    `<span class="host-name">${jugador.nombre}</span>` : 
+                    `<span class="player-name">${jugador.nombre}</span>`;
+                
+                // Marcar mi nombre si soy yo
+                const esYo = jugador.id === peer?.id;
+                const yoMark = esYo ? ' (tú)' : '';
+                
+                li.innerHTML = `${icono}${nombreMostrar}${yoMark}`;
+                listaElement.appendChild(li);
+            });
+            
+            // Si no hay jugadores, mostrar mensaje
+            if (jugadores.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'No hay jugadores en la sala';
+                li.style.fontStyle = 'italic';
+                li.style.color = '#999';
+                listaElement.appendChild(li);
+            }
+        }
+        
+        function cancelRoom() {
+            if (peer) {
+                peer.destroy();
+            }
+            resetToLobby();
+        }
+        
+        function resetToLobby() {
+            jugadores = [];
+            actualizarListaJugadores();
+            
+            document.getElementById('game-area').style.display = 'none';
+            document.getElementById('players').innerHTML = '';
+            document.getElementById('error-message').textContent = '';
+            setMainMenuEnabled(true);
+        }
+        
+        function showError(msg) {
+            document.getElementById('error-message').textContent = msg;
+        }
+        
+        function setMainMenuEnabled(enabled) {
+            if(enabled)
+                document.getElementById('main-menu').style.display = 'block';
+            else
+                document.getElementById('main-menu').style.display = 'none';
+        }
+        
+        // Limpiar todo si se cierra la pestaña
+        window.addEventListener('beforeunload', () => {
+            if (peer) {
+                peer.destroy();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -30,7 +30,7 @@ body {
 /* general */
 
 h1{
-    font-family: 'New Rocker','Germania One','Poppins', 'Ubuntu', Arial, sans-serif; 
+    font-family: /*'New Rocker',*/'Germania One','Poppins', 'Ubuntu', Arial, sans-serif; 
     font-size: 32pt;
     background: linear-gradient(90deg, #ffdd6d, #fffea6,#ffdd6d);
     background-size: 200% 100%;
@@ -115,6 +115,37 @@ p{
     }
 }
 
+/* Proyects 2D */
+.proy2D-div{
+    margin-bottom: 20px;
+}
+.proy2D-img{
+    height: 170px;
+    border: 2px solid rgba(0, 0, 0, 0); 
+    border-radius: 20px;
+}
+
+.proy2D-img:hover, .proy2D-img.selected{
+    border: 2px solid rgb(189, 255, 255); 
+    box-shadow: 0 0 6px rgba(0, 255, 255, 0.7);
+    z-index: 50;
+    transform: scale(1.5);
+}
+
+.proy2D-bigImage{
+    position: fixed;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 30px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+
+    /* Tamaño al 80% */
+    width: min(90vw, 90vh);
+    height: min(90vw, 90vh);
+    /* Asegurar que esté encima de todo */
+    z-index: 99;
+}
 /* Proyects 3D */
 
 .proy3D-div{
