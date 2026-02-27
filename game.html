@@ -42,8 +42,6 @@
     </style>
 </head>
 <body>
-    <h2>Juego P2P con Salas</h2>
-    
     <div id= "main-menu" style="display:block;">
         <div id="name-section">
         <input type="text" id="player-name" placeholder="Tu nombre" maxlength="20">
@@ -61,7 +59,7 @@
     </div>
     
     
-    <div id="game-area" style="display:none;">
+    <div id="room-menu" style="display:none;">
         <h3>ID de tu sala: <span id="displayRoomCode"></span></h3>
         <div id="connection-status"></div>
         
@@ -75,154 +73,212 @@
         
         <button onclick="cancelRoom()" id="cancelBtn">Atrás</button>
         
-        <!-- Aquí va la lógica de tu juego -->
-        <div id="game-content" style="margin-top: 20px;">
-            <p>Aquí irá el contenido del juego...</p>
-        </div>
     </div>
     
     <div id="error-message" class="error"></div>
 
     <script>
-        let peer;
-        let conn;
-        let isHost = false;
-        let roomId = null;
-        let miNombre = '';
-        let jugadores = []; // Array de objetos { id, nombre, esHost }
+        
+        class RoomData {
+            static peer;
+            static conn;
+            static isHost = false;
+            static roomId = null;
+            static myName = '';
+            static players = [];
+           
+
+        }
+
+        class UI{
+
+            static WINDOWS = {
+                MAIN_MENU: 1,
+                ROOM_MENU: 2,
+                GAME_MENU: 3,
+            };
+
+            static _currentWindow = UI.WINDOWS.MAIN_MENU;
+            static setCurrentWindow(newWindow) {
+                _currentWindow = newWindow;
+                switch(newWindow){
+                    case UI.WINDOWS.MAIN_MENU:
+                        break;
+                    case UI.WINDOWS.ROOM_MENU:
+                        break;
+                    case UI.WINDOWS.GAME_MENU:
+                        break;
+                }
+            }
+
+            static showError(msg) {
+                document.getElementById('error-message').textContent = msg;
+            }
+
+            static setPlayerList(playerList) {
+                const listElement = document.getElementById('players-list');
+                listElement.innerHTML = '';
+                
+                playerList.forEach(player => {
+                    const li = document.createElement('li');
+                    li.className = player.isHost ? 'host' : '';
+                    
+                    const icon = player.isHost ? '👑 ' : '🎮 ';
+                    const name = player.isHost ? 
+                        `<span class="host-name">${player.name}</span>` : 
+                        `<span class="player-name">${player.name}</span>`;
+                    
+                    // Marcar mi nombre si soy yo
+                    const isMe = player.id === RoomData.peer?.id;
+                    const mark = isMe ? ' (tú)' : '';
+                    
+                    li.innerHTML = `${icon}${name}${mark}`;
+                    listElement.appendChild(li);
+                });
+                
+                // Si no hay jugadores, mostrar mensaje
+                if (playerList.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = 'No hay jugadores en la sala';
+                    li.style.fontStyle = 'italic';
+                    li.style.color = '#999';
+                    listaElement.appendChild(li);
+                }
+            }
+        }
+        
         
         function createRoom() {
-            showError('');
+            UI.showError('');
             
-            miNombre = document.getElementById('player-name').value.trim();
+            RoomData.myName = document.getElementById('player-name').value.trim();
 
-            if(!miNombre){
-                showError('Elige un nombre');
+            if(!RoomData.myName){
+                UI.showError('Elige un nombre');
                 return;
             }
-            roomId = document.getElementById('roomCode').value.trim();
+            RoomData.roomId = document.getElementById('roomCode').value.trim();
     
             // Si no pusieron código, generar uno de 4 dígitos
-            if (!roomId) {
-                roomId = Math.floor(1000 + Math.random() * 9000).toString();
-            } else if (!/^\d{4}$/.test(roomId)) {
-                showError('El código debe ser de 4 dígitos');
+            if (!RoomData.roomId) {
+                RoomData.roomId = Math.floor(1000 + Math.random() * 9000).toString();
+            } else if (!/^\d{4}$/.test(RoomData.roomId)) {
+                UI.showError('El código debe ser de 4 dígitos');
                 return;
             }
             
             // Crear Peer con el código del input
-            peer = new Peer(roomId);
+            RoomData.peer = new Peer(RoomData.roomId);
             
-            peer.on('open', (id) => {
-                roomId = id;
-                isHost = true;
+            RoomData.peer.on('open', (id) => {
+                RoomData.roomId = id;
+                RoomData.isHost = true;
                 
                 // Agregarme a la lista de jugadores como host
-                jugadores = [{
-                    id: peer.id,
-                    nombre: miNombre,
-                    esHost: true
+                RoomData.players = [{
+                    id: RoomData.peer.id,
+                    name: RoomData.myName,
+                    isHost: true
                 }];
                 
-                actualizarListaJugadores();
+                UI.setPlayerList(RoomData.players);
                 
                 setMainMenuEnabled(false);
-                document.getElementById('game-area').style.display = 'block';
+                document.getElementById('room-menu').style.display = 'block';
                 document.getElementById('displayRoomCode').textContent = id;
                 
                 // Escuchar conexiones de jugadores
-                peer.on('connection', (connection) => {
-                    conn = connection;
+                RoomData.peer.on('connection', (connection) => {
+                    RoomData.conn = connection;
                     
-                    conn.on('data', (data) => {
+                    RoomData.conn.on('data', (data) => {
                         handleGameData(data);
                     });
                     
-                    conn.on('close', () => {
+                    RoomData.conn.on('close', () => {
                         // Quitar jugador desconectado de la lista
-                        jugadores = jugadores.filter(j => j.id !== conn.peer);
-                        actualizarListaJugadores();
+                        RoomData.players = RoomData.players.filter(j => j.id !== RoomData.conn.peer);
+                        UI.setPlayerList(RoomData.players);
                     });
                     
                     // Enviar lista actual de jugadores al recién conectado
                     setTimeout(() => {
-                        conn.send({
-                            type: 'lista_jugadores',
-                            jugadores: jugadores
+                        RoomData.conn.send({
+                            type: 'players_list',
+                            players: RoomData.players
                         });
                     }, 500);
                 });
             });
             
-            peer.on('error', (error) => {
-                showError('Error al crear sala: ' + error.type);
+            RoomData.peer.on('error', (error) => {
+                UI.showError('Error al crear sala: ' + error.type);
                 setMainMenuEnabled(true);
             });
         }
         
         function joinRoom() {
-            const roomId = document.getElementById('roomCode').value.trim();
+            RoomData.roomId = document.getElementById('roomCode').value.trim();
 
-            miNombre = document.getElementById('player-name').value.trim();
+            RoomData.myName = document.getElementById('player-name').value.trim();
 
-            if(!miNombre){
-                showError('Elige un nombre');
+            if(!RoomData.myName){
+                UI.showError('Elige un nombre');
                 return;
             }
 
-            if (!roomId) {
-                showError('Ingresa un código de sala');
+            if (!RoomData.roomId) {
+                UI.showError('Ingresa un código de sala');
                 return;
             }
             
+            UI.showError('');
             
-            showError('');
+            RoomData.peer = new Peer();
             
-            peer = new Peer();
-            
-            peer.on('open', () => {
-                conn = peer.connect(roomId);
+            RoomData.peer.on('open', () => {
+                RoomData.conn = RoomData.peer.connect(RoomData.roomId);
                 
                 // Timeout por si no se puede conectar
                 const connectionTimeout = setTimeout(() => {
-                    showError('No se pudo conectar a la sala.');
+                    UI.showError('No se pudo conectar a la sala.');
                     setMainMenuEnabled(true);
-                    peer.destroy();
+                    RoomData.peer.destroy();
                 }, 5000);
                 
-                conn.on('open', () => {
+                RoomData.conn.on('open', () => {
                     clearTimeout(connectionTimeout);
-                    isHost = false;
+                    RoomData.isHost = false;
                     
                     setMainMenuEnabled(false);
-                    document.getElementById('game-area').style.display = 'block';
-                    document.getElementById('displayRoomCode').textContent = roomId;
+                    document.getElementById('room-menu').style.display = 'block';
+                    document.getElementById('displayRoomCode').textContent = RoomData.roomId;
                     
                     // Enviar mi nombre al host
-                    conn.send({ 
-                        type: 'nuevo_jugador',
-                        nombre: miNombre,
-                        id: peer.id
+                    RoomData.conn.send({ 
+                        type: 'new_player',
+                        name: RoomData.myName,
+                        id: RoomData.peer.id
                     });
                 });
                 
-                conn.on('data', (data) => {
+                RoomData.conn.on('data', (data) => {
                     handleGameData(data);
                 });
                 
-                conn.on('close', () => {
-                    jugadores = [];
+                RoomData.conn.on('close', () => {
+                    RoomData.players = [];
                     resetToLobby();
-                    showError("El host cerró la sala");
+                    UI.showError("El host cerró la sala");
                 });
                 
-                conn.on('error', (error) => {
-                    showError('Error de conexión: ' + error);
+                RoomData.conn.on('error', (error) => {
+                    UI.showError('Error de conexión: ' + error);
                 });
             });
             
-            peer.on('error', (error) => {
-                showError('Error al unirse: ' + error.type);
+            RoomData.peer.on('error', (error) => {
+                UI.showError('Error al unirse: ' + error.type);
                 setMainMenuEnabled(true);
             });
         }
@@ -231,75 +287,46 @@
             console.log('Datos recibidos:', data);
             
             switch(data.type) {
-                case 'nuevo_jugador':
+                case 'new_player':
                     // Host recibe nuevo jugador
-                    const nuevoJugador = {
+                    const newPlayer = {
                         id: data.id,
-                        nombre: data.nombre,
-                        esHost: false
+                        name: data.name,
+                        isHost: false
                     };
-                    jugadores.push(nuevoJugador);
-                    actualizarListaJugadores();
+                    RoomData.players.push(newPlayer);
+                    UI.setPlayerList(RoomData.players);
                     
                     // Notificar a todos (incluyendo al nuevo) la lista actualizada
-                    if (conn) {
-                        conn.send({
+                    if (RoomData.conn) {
+                        RoomData.conn.send({
                             type: 'lista_jugadores',
-                            jugadores: jugadores
+                            players: RoomData.players
                         });
                     }
                     break;
                     
-                case 'lista_jugadores':
+                case 'players_list':
                     // Jugador recibe lista actualizada del host
-                    jugadores = data.jugadores;
-                    actualizarListaJugadores();
+                    RoomData.players = data.players;
+                    UI.setPlayerList(RoomData.players);
                     break;
                     
                 default:
             }
         }
         
-        function actualizarListaJugadores() {
-            const listaElement = document.getElementById('players-list');
-            listaElement.innerHTML = '';
-            
-            jugadores.forEach(jugador => {
-                const li = document.createElement('li');
-                li.className = jugador.esHost ? 'host' : '';
-                
-                const icono = jugador.esHost ? '👑 ' : '🎮 ';
-                const nombreMostrar = jugador.esHost ? 
-                    `<span class="host-name">${jugador.nombre}</span>` : 
-                    `<span class="player-name">${jugador.nombre}</span>`;
-                
-                // Marcar mi nombre si soy yo
-                const esYo = jugador.id === peer?.id;
-                const yoMark = esYo ? ' (tú)' : '';
-                
-                li.innerHTML = `${icono}${nombreMostrar}${yoMark}`;
-                listaElement.appendChild(li);
-            });
-            
-            // Si no hay jugadores, mostrar mensaje
-            if (jugadores.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'No hay jugadores en la sala';
-                li.style.fontStyle = 'italic';
-                li.style.color = '#999';
-                listaElement.appendChild(li);
-            }
-        }
+        
         
         function cancelRoom() {
             if (peer) {
-                peer.destroy();
+                RoomData.peer.destroy();
             }
             resetToLobby();
         }
         
         function resetToLobby() {
-            jugadores = [];
+            RoomData.players = [];
             actualizarListaJugadores();
             
             document.getElementById('game-area').style.display = 'none';
@@ -308,9 +335,7 @@
             setMainMenuEnabled(true);
         }
         
-        function showError(msg) {
-            document.getElementById('error-message').textContent = msg;
-        }
+        
         
         function setMainMenuEnabled(enabled) {
             if(enabled)
@@ -321,8 +346,8 @@
         
         // Limpiar todo si se cierra la pestaña
         window.addEventListener('beforeunload', () => {
-            if (peer) {
-                peer.destroy();
+            if (RoomData.peer) {
+                RoomData.peer.destroy();
             }
         });
     </script>
