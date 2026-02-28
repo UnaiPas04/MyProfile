@@ -3,42 +3,12 @@
 <head>
     <title>Mi Juego P2P</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <style>
-        .error { color: red; }
-        .success { color: green; }
-        button:disabled { opacity: 0.5; }
 
-        .host-name { /*font-weight: bold;*/ color: #34495e; }
-        .player-name { color: #34495e; }
-        .player-list {
-            border: 1px solid #ccc;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-        .player-list h4 {
-            margin-top: 0;
-            color: #333;
-        }
-        .player-list ul {
-            list-style: none;
-            padding: 0;
-        }
-        .player-list li {
-            padding: 8px;
-            margin: 5px 0;
-            background-color: white;
-            border-radius: 3px;
-            border: 1px solid;
-            border-left: 10px solid;
-            
-            border-color: #3498db;
-        }
-        .player-list li.host {
-            background-color: #fffff6;
-            border-color: #ffed65;
-        }
+    <!-- Cargar archivo CSS externo -->
+    <link rel="stylesheet" href="stylesGame.css">
+
+    <style>
+        
     </style>
 </head>
 <body>
@@ -75,19 +45,149 @@
         
     </div>
     
+    <div id="game-menu" style="display:none;">
+        
+    </div>
+
     <div id="error-message" class="error"></div>
 
     <script>
         
         class RoomData {
             static peer;
-            static conn;
+            static hostConnection; //lo usan clientes para hablar con el host
+            static clientsConnections = []; //lo usa el host para hablar con clientes
             static isHost = false;
             static roomId = null;
             static myName = '';
             static players = [];
-           
 
+            static AddClientConn(conn) {
+                if (!this.isHost) throw new Error('Only Host');
+                
+                // Agregar la conexión al array
+                this.clientsConnections.push(conn);
+                
+                // Configurar evento para removerla automáticamente cuando se cierre
+                conn.on('close', () => {
+                    this.RemoveClientConn(conn);
+                });
+                
+                conn.on('data', (data) => {
+                    this.HandleData(data);
+                });
+
+                console.log(`Cliente conectado. Total: ${this.clientsConnections.length}`);
+            }
+
+            static RemoveClientConn(conn) {
+                if (!this.isHost) throw new Error('Only Host');
+                
+                const index = this.clientsConnections.indexOf(conn);
+                if (index > -1) {
+                    this.clientsConnections.splice(index, 1);
+                    console.log(`Cliente removido. Quedan: ${this.clientsConnections.length}`);
+                }
+
+                //Quitar de la lista players
+                this.players = this.players.filter(j => j.id !== conn.peer); //esta linea da error
+
+                //Avisar a todos del cambio
+                this.SendMessageToClients({
+                        type: 'players_list',
+                        players: RoomData.players
+                    });
+                
+                UI.setPlayerList(this.players);
+            }
+
+            static SetHostConn(conn) {
+                if (this.isHost) throw new Error('Only Clients');
+                
+                this.hostConnection = conn;
+
+                this.hostConnection.on('data', (data) => {
+                    this.HandleData(data);
+                });
+            }
+
+            static SendMessageToHost(msg){
+                if(this.isHost) throw new Error('Only Clients');
+
+                if(this.hostConnection){
+                    this.hostConnection.send(msg);
+                }
+                else{
+                    throw new Error('First Init Host');
+                }
+            }
+
+            static SendMessageToClients(msg) {
+                if (!this.isHost) throw new Error('Only Host');
+                
+                // Enviar a todos los clientes
+                this.clientsConnections.forEach(conn => {
+                    if (conn && conn.open) {
+                        conn.send(msg);
+                    }
+                });
+            }
+            static SendMessageToClient(clientId, msg) {
+                if (!this.isHost) throw new Error('Only Host');
+                
+                // Buscar la conexión por el peer.id del cliente
+                const connection = this.connections.find(conn => conn.peer === clientId);
+                
+                if (connection && connection.open) {
+                    connection.send(msg);
+                }
+            }
+
+            static HandleData(data) {
+                console.log('Datos recibidos:', data);
+                
+                switch(data.type) {
+                    case 'new_player':
+                        //Host recibe info de un cliente
+                        //Si no cabe, decirselo
+                        if(this.players.length >= 6){
+                            this.SendMessageToClient(data.id, 
+                            {
+                                type: 'room_full'
+                            });
+                            return;
+                        }
+                        //Si cabe:
+                        // Host recibe nuevo jugador
+                        const newPlayer = {
+                            id: data.id,
+                            name: data.name,
+                            isHost: false
+                        };
+                        this.players.push(newPlayer);
+                        UI.setPlayerList(this.players);
+                        
+                        // Notificar a todos  la lista actualizada
+
+                        this.SendMessageToClients({
+                            type: 'players_list',
+                            players: RoomData.players
+                        });
+                        break;
+                        
+                    case 'players_list':
+                        // Jugador recibe lista actualizada del host
+                        this.players = data.players;
+                        UI.setPlayerList(this.players);
+                        break;
+                        
+                    case 'room_full':
+                        UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
+                        UI.showError('Sala llena');
+                        break;
+                    default:
+                }
+            }
         }
 
         class UI{
@@ -100,15 +200,17 @@
 
             static _currentWindow = UI.WINDOWS.MAIN_MENU;
             static setCurrentWindow(newWindow) {
-                _currentWindow = newWindow;
-                switch(newWindow){
-                    case UI.WINDOWS.MAIN_MENU:
-                        break;
-                    case UI.WINDOWS.ROOM_MENU:
-                        break;
-                    case UI.WINDOWS.GAME_MENU:
-                        break;
-                }
+                UI._currentWindow = newWindow;
+
+                //Activar la correspondiente
+                const mainDisplay = newWindow === UI.WINDOWS.MAIN_MENU? 'block': 'none';
+                document.getElementById('main-menu').style.display = mainDisplay;
+
+                const roomDisplay = newWindow === UI.WINDOWS.ROOM_MENU? 'block': 'none';
+                document.getElementById('room-menu').style.display = roomDisplay;
+
+                const gameDisplay = newWindow === UI.WINDOWS.GAME_MENU? 'block': 'none';
+                document.getElementById('game-menu').style.display = gameDisplay;
             }
 
             static showError(msg) {
@@ -119,13 +221,14 @@
                 const listElement = document.getElementById('players-list');
                 listElement.innerHTML = '';
                 
+                let i = 0;
                 playerList.forEach(player => {
                     const li = document.createElement('li');
-                    li.className = player.isHost ? 'host' : '';
+                    li.className = 'p'+i;
                     
                     const icon = player.isHost ? '👑 ' : '🎮 ';
                     const name = player.isHost ? 
-                        `<span class="host-name">${player.name}</span>` : 
+                        `<span class="player-name">${player.name}</span>` : 
                         `<span class="player-name">${player.name}</span>`;
                     
                     // Marcar mi nombre si soy yo
@@ -134,6 +237,8 @@
                     
                     li.innerHTML = `${icon}${name}${mark}`;
                     listElement.appendChild(li);
+
+                    i++;
                 });
                 
                 // Si no hay jugadores, mostrar mensaje
@@ -142,13 +247,19 @@
                     li.textContent = 'No hay jugadores en la sala';
                     li.style.fontStyle = 'italic';
                     li.style.color = '#999';
-                    listaElement.appendChild(li);
+                    listElement.appendChild(li);
                 }
+            }
+        
+            static setRoomCode(roomCode){
+                document.getElementById('displayRoomCode').textContent = roomCode;
             }
         }
         
         
         function createRoom() {
+            //El host crea una sala
+
             UI.showError('');
             
             RoomData.myName = document.getElementById('player-name').value.trim();
@@ -181,29 +292,17 @@
                     isHost: true
                 }];
                 
+                UI.setCurrentWindow(UI.WINDOWS.ROOM_MENU);
                 UI.setPlayerList(RoomData.players);
-                
-                setMainMenuEnabled(false);
-                document.getElementById('room-menu').style.display = 'block';
-                document.getElementById('displayRoomCode').textContent = id;
+                UI.setRoomCode(id);
                 
                 // Escuchar conexiones de jugadores
                 RoomData.peer.on('connection', (connection) => {
-                    RoomData.conn = connection;
+                    RoomData.AddClientConn(connection);
                     
-                    RoomData.conn.on('data', (data) => {
-                        handleGameData(data);
-                    });
-                    
-                    RoomData.conn.on('close', () => {
-                        // Quitar jugador desconectado de la lista
-                        RoomData.players = RoomData.players.filter(j => j.id !== RoomData.conn.peer);
-                        UI.setPlayerList(RoomData.players);
-                    });
-                    
-                    // Enviar lista actual de jugadores al recién conectado
+                    // Enviar lista actual de jugadores a todos los clientes conectados
                     setTimeout(() => {
-                        RoomData.conn.send({
+                        RoomData.SendMessageToClients({
                             type: 'players_list',
                             players: RoomData.players
                         });
@@ -212,14 +311,13 @@
             });
             
             RoomData.peer.on('error', (error) => {
+                UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
                 UI.showError('Error al crear sala: ' + error.type);
-                setMainMenuEnabled(true);
             });
         }
         
         function joinRoom() {
             RoomData.roomId = document.getElementById('roomCode').value.trim();
-
             RoomData.myName = document.getElementById('player-name').value.trim();
 
             if(!RoomData.myName){
@@ -237,113 +335,59 @@
             RoomData.peer = new Peer();
             
             RoomData.peer.on('open', () => {
-                RoomData.conn = RoomData.peer.connect(RoomData.roomId);
-                
+                const hostConn = RoomData.peer.connect(RoomData.roomId);
+                RoomData.SetHostConn(hostConn);
+
                 // Timeout por si no se puede conectar
                 const connectionTimeout = setTimeout(() => {
+                    UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
                     UI.showError('No se pudo conectar a la sala.');
-                    setMainMenuEnabled(true);
                     RoomData.peer.destroy();
                 }, 5000);
                 
-                RoomData.conn.on('open', () => {
+                RoomData.hostConnection.on('open', () => {
                     clearTimeout(connectionTimeout);
                     RoomData.isHost = false;
                     
-                    setMainMenuEnabled(false);
-                    document.getElementById('room-menu').style.display = 'block';
-                    document.getElementById('displayRoomCode').textContent = RoomData.roomId;
+                    UI.setCurrentWindow(UI.WINDOWS.ROOM_MENU);
+                    UI.setRoomCode(RoomData.roomId);
                     
                     // Enviar mi nombre al host
-                    RoomData.conn.send({ 
+                    RoomData.SendMessageToHost({ 
                         type: 'new_player',
                         name: RoomData.myName,
                         id: RoomData.peer.id
                     });
                 });
                 
-                RoomData.conn.on('data', (data) => {
-                    handleGameData(data);
+                RoomData.hostConnection.on('close', () => {
+                    cancelRoom();
                 });
                 
-                RoomData.conn.on('close', () => {
-                    RoomData.players = [];
-                    resetToLobby();
-                    UI.showError("El host cerró la sala");
-                });
-                
-                RoomData.conn.on('error', (error) => {
+                RoomData.hostConnection.on('error', (error) => {
                     UI.showError('Error de conexión: ' + error);
                 });
             });
             
             RoomData.peer.on('error', (error) => {
+                UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
                 UI.showError('Error al unirse: ' + error.type);
-                setMainMenuEnabled(true);
             });
         }
         
-        function handleGameData(data) {
-            console.log('Datos recibidos:', data);
-            
-            switch(data.type) {
-                case 'new_player':
-                    // Host recibe nuevo jugador
-                    const newPlayer = {
-                        id: data.id,
-                        name: data.name,
-                        isHost: false
-                    };
-                    RoomData.players.push(newPlayer);
-                    UI.setPlayerList(RoomData.players);
-                    
-                    // Notificar a todos (incluyendo al nuevo) la lista actualizada
-                    if (RoomData.conn) {
-                        RoomData.conn.send({
-                            type: 'lista_jugadores',
-                            players: RoomData.players
-                        });
-                    }
-                    break;
-                    
-                case 'players_list':
-                    // Jugador recibe lista actualizada del host
-                    RoomData.players = data.players;
-                    UI.setPlayerList(RoomData.players);
-                    break;
-                    
-                default:
-            }
-        }
-        
-        
-        
+
         function cancelRoom() {
-            if (peer) {
+            if (RoomData.peer) {
                 RoomData.peer.destroy();
             }
-            resetToLobby();
+            resetPlayersList();
+            UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
         }
         
-        function resetToLobby() {
+        function resetPlayersList() {
             RoomData.players = [];
-            actualizarListaJugadores();
-            
-            document.getElementById('game-area').style.display = 'none';
-            document.getElementById('players').innerHTML = '';
-            document.getElementById('error-message').textContent = '';
-            setMainMenuEnabled(true);
+            UI.setPlayerList(RoomData.players);
         }
-        
-        
-        
-        function setMainMenuEnabled(enabled) {
-            if(enabled)
-                document.getElementById('main-menu').style.display = 'block';
-            else
-                document.getElementById('main-menu').style.display = 'none';
-        }
-        
         // Limpiar todo si se cierra la pestaña
         window.addEventListener('beforeunload', () => {
             if (RoomData.peer) {
