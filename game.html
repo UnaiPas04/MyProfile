@@ -17,44 +17,51 @@
     </style>
 </head>
 <body>
-    <div id= "main-menu" style="display:block;">
-        <div id="name-section">
-        <input type="text" id="player-name" placeholder="Tu nombre" maxlength="20">
-        </div>
-        
-        <input id="roomCode" placeholder="Código de sala">
+    <div class ="container-fluid d-flex align-items-center justify-content-center">
+        <div id= "main-menu" style="display:block;" class = "main-menu position-fixed top-50 start-50 translate-middle">
+            
+            <div class="d-flex flex-column justify-content-center align-items-center gap-2 p-2">
+                <input type="text" id="player-name" placeholder="Tu nombre" maxlength="20"
+                class="form-control text-center rounded-4">
+                <input id="roomCode" placeholder="Código de sala" maxlength="4"
+                class="form-control text-center rounded-4">
 
-        <div>
-            <button onclick="createRoom()" id="createBtn">Crear Sala</button>
+                <div class="w-100">
+                    <button onclick="createRoom()" id="createBtn"
+                    class="btn btn-primary w-100 rounded-4">Crear Sala</button>
+                </div>
+                
+                <div class="w-100">
+                    <button onclick="joinRoom()" id="joinBtn"
+                    class="btn btn-primary w-100 rounded-4">Unirse</button>
+                </div>
+            </div>
         </div>
         
-        <div>
-            <button onclick="joinRoom()" id="joinBtn">Unirse</button>
+        
+        <div id="room-menu" style="display:none; " class = "room-menu mt-5 p-2">
+            <h4>ID Sala: <span id="displayRoomCode"></span></h4>
+            <div id="connection-status"></div>
+            
+            <!-- Lista de jugadores conectados -->
+            <div class="player-list">
+                <ul id="players-list">
+                    <!-- Se llena dinámicamente -->
+                </ul>
+            </div>
+            
+            <button onclick="cancelRoom()" id="cancelBtn"
+            class="btn btn-primary w-30 rounded-4">Atrás</button>
+            
         </div>
-    </div>
-    
-    
-    <div id="room-menu" style="display:none;">
-        <h3>ID de tu sala: <span id="displayRoomCode"></span></h3>
-        <div id="connection-status"></div>
         
-        <!-- Lista de jugadores conectados -->
-        <div class="player-list">
-            <h4>Jugadores:</h4>
-            <ul id="players-list">
-                <!-- Se llena dinámicamente -->
-            </ul>
+        <div id="game-menu" style="display:none;">
+            
         </div>
-        
-        <button onclick="cancelRoom()" id="cancelBtn">Atrás</button>
-        
-    </div>
-    
-    <div id="game-menu" style="display:none;">
-        
-    </div>
 
-    <div id="error-message" class="error"></div>
+        <div id="error-message" class="error"></div>
+    </div>
+    
 
     <script>
         
@@ -141,7 +148,7 @@
                 if (!this.isHost) throw new Error('Only Host');
                 
                 // Buscar la conexión por el peer.id del cliente
-                const connection = this.connections.find(conn => conn.peer === clientId);
+                const connection = this.clientsConnections.find(conn => conn.peer === clientId);
                 
                 if (connection && connection.open) {
                     connection.send(msg);
@@ -156,6 +163,7 @@
                         //Host recibe info de un cliente
                         //Si no cabe, decirselo
                         if(this.players.length >= 6){
+                            console.log("aqui");                            
                             this.SendMessageToClient(data.id, 
                             {
                                 type: 'room_full'
@@ -164,6 +172,7 @@
                         }
                         //Si cabe:
                         // Host recibe nuevo jugador
+                        console.log("alla");
                         const newPlayer = {
                             id: data.id,
                             name: data.name,
