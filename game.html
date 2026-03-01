@@ -40,19 +40,27 @@
         
         
         <div id="room-menu" style="display:none; " class = "room-menu mt-5 p-2">
-            <h4>ID Sala: <span id="displayRoomCode"></span></h4>
-            <div id="connection-status"></div>
             
-            <!-- Lista de jugadores conectados -->
-            <div class="player-list">
-                <ul id="players-list">
-                    <!-- Se llena dinámicamente -->
-                </ul>
+            <div class="d-flex flex-column justify-content-center align-items-center gap-2 p-2"></div>
+                <h4>ID Sala: <span id="displayRoomCode"></span></h4>
+                <div id="connection-status"></div>
+                
+                <!-- Lista de jugadores conectados -->
+                <div class="player-list">
+                    <ul id="players-list">
+                        <!-- Se llena dinámicamente -->
+                    </ul>
+                </div>
+            
+               
+                <button onclick="cancelRoom()" id="cancelBtn"
+                class="btn btn-primary w-30 rounded-4">Atrás</button>
+                
+                <button onclick="startGame()" style="margin-top: 10px;" id="startBtn"
+                class="btn btn-primary w-30 rounded-4"
+                style="display:none; ">Empezar Partida</button>
+                
             </div>
-            
-            <button onclick="cancelRoom()" id="cancelBtn"
-            class="btn btn-primary w-30 rounded-4">Atrás</button>
-            
         </div>
         
         <div id="game-menu" style="display:none;">
@@ -199,6 +207,9 @@
                         UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
                         UI.showError('Sala llena');
                         break;
+                    case 'start_game':
+                        UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
+                        break;
                     default:
                 }
             }
@@ -225,6 +236,10 @@
 
                 const gameDisplay = newWindow === UI.WINDOWS.GAME_MENU? 'block': 'none';
                 document.getElementById('game-menu').style.display = gameDisplay;
+
+                const startButtDisplay = (newWindow === UI.WINDOWS.ROOM_MENU && RoomData.isHost)? 'block': 'none';
+                document.getElementById('startBtn').style.display = startButtDisplay;
+                
             }
 
             static showError(msg) {
@@ -389,6 +404,13 @@
             });
         }
         
+        function startGame(){
+            UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
+
+            RoomData.SendMessageToClients({
+                type: 'start_game',
+            });
+        }
 
         function cancelRoom() {
             if (RoomData.peer) {
