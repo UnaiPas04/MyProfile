@@ -27,9 +27,13 @@ class MouseTracker {
         return this.y;
     }
     getVelX(){
-        return this.x - this.lastX;
+        const velX = this.x - this.lastX;
+        this.lastX = this.x;
+        return velX;
     }
      getVelY(){
-        return this.y - this.lastY;
+        const velY = this.y - this.lastY;
+        this.lastY = this.y;
+        return velY;
     }
 }
