@@ -63,8 +63,23 @@
             </div>
         </div>
         
-        <div id="game-menu" style="display:none;">
+        <div id="game-menu" style="display:none; width: 500pt; background-color: #f8f9fa;" 
+        class="game-menu p-4 rounded-3 shadow 
+        position-fixed top-50 start-50 translate-middle">
             
+            <div class="d-flex flex-column gap-4">
+                <!-- Texto de turno -->
+                <div class="text-center">
+                    <h4 class="mb-0 fw-bold text-primary">
+                        Turno de: <span id="jugador-actual">Jugador 1</span>
+                    </h4>
+                </div>
+                
+                <!-- Contenedor del tablero -->
+                <div id="board-container" class="d-flex justify-content-center">
+                    <!-- El tablero se generará aquí dinámicamente -->
+                </div>
+            </div>
         </div>
 
         <div id="error-message" class="error"></div>
@@ -222,7 +237,13 @@
                 ROOM_MENU: 2,
                 GAME_MENU: 3,
             };
-
+            static SPAWN_DIRECTIONS = {
+                NONE: '',
+                LEFT: 'anim-left',
+                RIGHT: 'anim-right',
+                UP: 'anim-up',
+                DOWN: 'anim-down',
+            };
             static _currentWindow = UI.WINDOWS.MAIN_MENU;
             static setCurrentWindow(newWindow) {
                 UI._currentWindow = newWindow;
@@ -283,8 +304,43 @@
             static setRoomCode(roomCode){
                 document.getElementById('displayRoomCode').textContent = roomCode;
             }
+
+            static setBoard(size) {
+                const container = document.getElementById('board-container');
+                container.innerHTML = ''; 
+                
+                const table = document.createElement('table');
+                table.className = 'game-board';
+                
+                for (let i = 0; i < size; i++) {
+                    const row = document.createElement('tr');
+                    
+                    for (let j = 0; j < size; j++) {
+                        const cell = document.createElement('td');
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        cell.className = 'game-board-cell';
+
+                        cell.onclick = function() {
+                            const row = parseInt(this.dataset.row);
+                            const col = parseInt(this.dataset.col);
+                            UI.PutPiece(row, col, UI.SPAWN_DIRECTIONS.LEFT);
+                        };
+                        row.appendChild(cell);
+                    }
+                    table.appendChild(row);
+                }
+                container.appendChild(table);
+            }
+            static PutPiece(row, col, spawnDirection){
+                const piece = document.createElement('div');
+                piece.className = 'game-piece '+ spawnDirection; 
+                
+                const cell = document.querySelector(`.game-board-cell[data-row="${row}"][data-col="${col}"]`);
+
+                cell.appendChild(piece);
+            }
         }
-        
         
         function createRoom() {
             //El host crea una sala
@@ -410,6 +466,9 @@
             RoomData.SendMessageToClients({
                 type: 'start_game',
             });
+
+            UI.setBoard(9);
+
         }
 
         function cancelRoom() {

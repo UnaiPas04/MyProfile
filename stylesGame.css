@@ -93,75 +93,108 @@ button:disabled { opacity: 0.5; }
     flex-direction: column;
 }
 /* UI PARTIDA */
+.game-board{
+    border-collapse: separate;
+    
+    background-color : #f0ffff;
+    margin : 0 auto;
+    
+    border : 3px solid rgb(205, 254, 255);
+    border-radius: 17px;
+}
+.game-board-cell{
+    width : 60px;
+    height : 60px;
+    text-align : center;
+    font-Size : 24px;
+    font-Weight : bold;
+    cursor : pointer;
+
+    background-color : #e9ffff;
+    border : 3px solid rgb(174, 233, 234);
+    
+    border-radius: 13px;
+
+    position: relative;
+}
+.game-board-cell:hover, .game-board-cell.yourTurn{
+    background-color : #c6ffff;
+    border : 3px solid rgb(132, 206, 208);
+}
+.game-piece{
+    width : 40px;
+    height : 40px;
+
+    position: absolute;
+    background-image: url('IMGs/yo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+
+    top: 50%;
+    left: 50%;
+    
+    transform: translateX(-50%) translateY(-50%) scale(1);
+    z-index: 10;
+}
 @keyframes goLeftWhenSpawn {
     0% { 
-        transform: translateX(-100%); 
+        transform: translateX(50%) translateY(-50%) scale(1);
         opacity: 0;
-        transform: scale(1);
     }
     50% { 
-        transform: translateX(-50%); 
+        transform: translateX(0%) translateY(-50%) scale(1.4);
         opacity: 100;
-        transform: scale(1.4);
     }
     100% { 
-        transform: translateX(0%); 
+        transform: translateX(-50%) translateY(-50%) scale(1);
         opacity: 100;
-        transform: scale(1);
     }
 }
 
 @keyframes goRightWhenSpawn {
     0% { 
-        transform: translateX(100%); 
+        transform: translateX(-150%) translateY(-50%) scale(1);
         opacity: 0;
-        transform: scale(1);
     }
     50% { 
-        transform: translateX(50%); 
+        transform: translateX(-100%) translateY(-50%) scale(1.4);
         opacity: 100;
-        transform: scale(1.4);
     }
     100% { 
-        transform: translateX(0%); 
+        transform: translateX(-50%) translateY(-50%) scale(1);
         opacity: 100;
-        transform: scale(1);
     }
 }
 
 @keyframes goUpWhenSpawn {
     0% { 
-        transform: translateY(100%); 
+        transform: translateX(-50%) translateY(50%) scale(1);
         opacity: 0;
-        transform: scale(1);
     }
     50% { 
-        transform: translateY(50%); 
+        transform: translateX(-50%) translateY(0%) scale(1.4);
         opacity: 100;
-        transform: scale(1.4);
     }
     100% { 
-        transform: translateY(0%); 
+        transform: translateX(-50%) translateY(-50%) scale(1);
         opacity: 100;
-        transform: scale(1);
     }
 }
 
 @keyframes goDownWhenSpawn {
     0% { 
-        transform: translateY(-100%); 
+        transform: translateX(-50%) translateY(-150%) scale(1);
         opacity: 0;
-        transform: scale(1);
     }
     50% { 
-        transform: translateY(-50%); 
+        transform: translateX(-50%) translateY(-100%) scale(1.4);
         opacity: 100;
-        transform: scale(1.4);
     }
     100% { 
-        transform: translateY(0%); 
+        transform: translateX(-50%) translateY(-50%) scale(1);
         opacity: 100;
-        transform: scale(1);
     }
 }
 
