@@ -142,7 +142,7 @@ button:disabled { opacity: 0.5; }
 
     position: relative;
 }
-.game-board-cell.myTurn:hover{
+.game-board-cell.clickable:hover{
     
     cursor : pointer;
     background-color : #c6ffff;

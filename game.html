@@ -98,17 +98,17 @@
             static players = [];
 
             static get myPlayerIndex() {
-                // Si eres host, buscas por peer.id
-                // Si eres cliente, buscas por hostConnection.peer
-                const myId = this.peer?.id;
-                return this.players.findIndex(p => p.id === myId);
+                return this.players.findIndex(p => p.id === this.peer?.id);
             }
-
+           
             static getPlayerName(id){
                 return this.players[id].name;
             }
-            static getPlayerId(arrayIndex){
-                return this.players[arrayIndex].id;
+            static getPlayerPeerId(id){
+                return this.players[id].id;
+            }
+            static getPlayerId(peerId) {
+                return this.players.findIndex(p => p.id === peerId);
             }
             static AddClientConn(conn) {
                 if (!this.isHost) throw new Error('Only Host');
@@ -210,8 +210,7 @@
                     case 'new_player':
                         //Host recibe info de un cliente
                         //Si no cabe, decirselo
-                        if(this.players.length >= 6){
-                            console.log("aqui");                            
+                        if(this.players.length >= 6){                         
                             this.SendMessageToClient(data.id, 
                             {
                                 type: 'room_full'
@@ -220,7 +219,6 @@
                         }
                         //Si cabe:
                         // Host recibe nuevo jugador
-                        console.log("alla");
                         const newPlayer = {
                             id: data.id,
                             name: data.name,
@@ -258,8 +256,14 @@
                         break;
                     case 'request_new_turn':
                         //El cliente pide al host q cambie de turno
-                        if(clientID === this.getPlayerId(GameManager.currentPlayer)){
-                            GameManager.sendOrRequestNewTurn();
+                        if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
+                            GameManager.NewTurn_DoOrReq();
+                        }
+                        break;
+                    case 'client_Click':
+                        if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
+                            //El jugador dio click
+                            GameManager.onCellClick(data.row, data.col, data.firstTurn ?? false, this.getPlayerId(clientID));
                         }
                         break;
                     default:
@@ -272,8 +276,19 @@
             #owner; //[-1, numberPlayers) dueño de la casilla, -1 si no tiene dueño
             #currentPiece; //referencia a la ficha si tiene
 
+            #nextPieces = []; //pieza q se desplaza hacia esta celda
+
+            constructor(value = 0, owner = -1, currentPiece = null) {
+                this.#value = value;
+                this.#owner = owner;
+                this.#currentPiece = currentPiece;
+            }
+
             set currentPiece(piece){
                 this.#currentPiece = piece;
+            }
+            addNextPiece(piece) {
+                this.#nextPieces.push(piece);
             }
             set value(value){
                 this.#value = value;
@@ -282,23 +297,42 @@
                 this.#owner = owner;
             }
 
-            updateCurrentPiece(){
+            get imTheOwner(){
+                return GameManager.myId === this.#owner;
+            }
+            get hasOwner(){
+                return this.#owner !== -1;
+            }
+
+            removeCurrentPiece(){
+                this.#currentPiece.remove();
+                this.#currentPiece = null;
+            }
+            updateCell(){
+                let i = 0;
+                this.#nextPieces.forEach(piece => {
+                    this.#value++;
+                    this.#owner = GameManager.currentPlayer;
+
+                    piece.remove();
+
+                    i++;
+                });
+                this.#nextPieces = [];
+
                 this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5');
                 this.#currentPiece.classList.remove('p0','p1','p2','p3','p4','p5');
 
                 if(this.#value !== 0){
-                    this.#currentPiece.classList.add('v'+value);
+                    this.#currentPiece.classList.add('v'+this.value);
                 }
                 if(this.#owner !== -1){
-                    this.#currentPiece.classList.add('p'+owner);
+                    this.#currentPiece.classList.add('p'+this.owner);
                 }
             }
         }
         class GameManager{
             static #currentPlayer;//id [0,6), datos en roomData.players[]
-
-            static #boardSize;
-            static #cells;
 
             static get myId(){
                 return RoomData.myPlayerIndex;
@@ -315,7 +349,7 @@
             static set currentPlayer(value){
                 this.#currentPlayer = value;
                 UI.SetCurrentPlayer(RoomData.getPlayerName(this.currentPlayer), this.currentPlayer, this.lastPlayer, this.isMyTurn);
-                UI.SetMyTurn(this.isMyTurn);
+                UI.SetMyTurn(this.isMyTurn, this.isMyFirstTurn);
             }
             static get nextPlayer(){
                 return (this.currentPlayer + 1) % this.numberOfPlayers;
@@ -327,7 +361,42 @@
                 return this.myId == this.currentPlayer;
             }
 
-            static sendOrRequestNewTurn(){
+            static #initialTurn = true;
+            static get isMyFirstTurn(){
+                return this.isMyTurn && this.#initialTurn;
+            }
+
+            static #boardSize;
+            static #cells;
+
+            static set boardSize(value){
+                
+                UI.setBoard(value);
+
+                //inicial #cell como array nxn
+                this.#cells = [];
+    
+                for (let i = 0; i < value; i++) {
+                    this.#cells[i] = [];
+                    for (let j = 0; j < value; j++) {
+                        this.#cells[i][j] = new Cell();
+                    }
+                }
+            }
+
+            static getCell(row, col) {
+                return this.#cells[row][col];
+            }
+
+            static updateAllCells() {
+                this.#cells.forEach(row => {
+                    row.forEach(cell => {
+                        cell.updateCurrentPiece();
+                    });
+                });
+            }
+
+            static NewTurn_DoOrReq(){
                 if(RoomData.isHost){
                     RoomData.SendMessageToClients({
                         type: 'new_turn'
@@ -341,22 +410,60 @@
                 }
             }
             static newTurn(){
+                if(this.isMyFirstTurn){
+                    this.#initialTurn = false;
+                }
+
                 this.currentPlayer = this.nextPlayer;
             }
 
-            static onCellClick(row, col){
+            static onCellClick_DoOrReq(row, col){
                 if(!this.isMyTurn) return;
 
-                UI.SpawnPiece(row, col, UI.SPAWN_DIRECTIONS.DOWN, 1, this.myId);
-                this.sendOrRequestNewTurn();
-            }
+                if(RoomData.isHost){
+                    this.onCellClick(row, col, this.isMyFirstTurn, this.myId);
+                }
+                else{
+                    RoomData.SendMessageToHost({
+                        type: 'client_Click',
+                        row: row,
+                        col: col,
+                        ...(this.isMyFirstTurn && { firstTurn: true }) // solo enviar si es true
+                    });
+                }
 
+                this.NewTurn_DoOrReq();
+            }
+            
+            static onCellClick(row, col, firstTurn, id){
+                //Se llama en host cuando el jugador haga click en su turno
+                if(firstTurn){
+                    //Primer turno de ese jugador
+                    //Spawnear ficha
+                    const value = 3; const owner = id;
+                    const piece = UI.SpawnPiece(row, col, UI.SPAWN_DIRECTIONS.DOWN, value, owner);
+                    const cell = this.getCell(row,col);
+                    cell.currentPiece = piece;
+                    cell.owner = owner;
+                    cell.value = value;
+
+                    cell.updateCell();
+                }
+                else{
+                    //Sumar 1 a la casilla, si es suya
+
+                }
+            }
             static onStartGame(initialPlayer){
                 
+                this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
+
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
-                UI.setBoard(9);
+                
+                this.boardSize = 9;
 
                 this.currentPlayer = initialPlayer;
+
             }
 
         }
@@ -461,9 +568,12 @@
 
             static onCellClick(){
                 //this es el objeto cell clickado
+                if(parseInt(this.dataset.clickable)=== 0) return;
+
                 const row = parseInt(this.dataset.row);
                 const col = parseInt(this.dataset.col);
-                GameManager.onCellClick(row, col);
+
+                GameManager.onCellClick_DoOrReq(row, col);
             }
 
             static SpawnPiece(row, col, spawnDirection, value, owner){
@@ -493,19 +603,48 @@
                 board.classList.add('p'+id);
             }
 
-            static SetMyTurn(isMyTurn) {
+            static SetMyTurn(isMyTurn, isMyFirstTurn) {
+                console.log('myT: '+isMyTurn);
+                console.log('myFT: '+isMyFirstTurn);
                 // Seleccionar todas las celdas
                 const cells = document.querySelectorAll('.game-board-cell');
                 
-                if (isMyTurn) {
-                    // Activar sombreado: añadir clase yourTurn
+                if (isMyFirstTurn) {
+                    // Activar click en las casillas vacias
                     cells.forEach(cell => {
-                        cell.classList.add('myTurn');
+                        const row = parseInt(cell.dataset.row);
+                        const col = parseInt(cell.dataset.col);
+
+                        if(GameManager.getCell(row,col).hasOwner){
+                            cell.dataset.clickable = 0;
+                            cell.classList.remove('clickable');
+                        }else{
+                            cell.dataset.clickable = 1;
+                            cell.classList.add('clickable');
+                        }
                     });
-                } else {
-                    // Desactivar sombreado: quitar clase yourTurn
+                } else if(isMyTurn){
+                    // Activar click en las mias
                     cells.forEach(cell => {
-                        cell.classList.remove('myTurn');
+                        const row = parseInt(cell.dataset.row);
+                        const col = parseInt(cell.dataset.col);
+
+                        const imTheOwner = GameManager.getCell(row,col).imTheOwner;
+
+                        if(imTheOwner){
+                            cell.dataset.clickable = 1;
+                            cell.classList.add('clickable');
+                        }else{
+                            cell.dataset.clickable = 0;
+                            cell.classList.remove('clickable');
+                        }
+                    });
+                }
+                else {
+                    // Inabilitar click en todas
+                    cells.forEach(cell => {
+                        cell.dataset.clickable = 0;
+                        cell.classList.remove('clickable');
                     });
                 }
             }
