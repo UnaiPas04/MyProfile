@@ -35,6 +35,8 @@
                     <button onclick="joinRoom()" id="joinBtn"
                     class="btn btn-primary w-100 rounded-4">Unirse</button>
                 </div>
+
+                <div id="error-message" class="error w-100"></div>
             </div>
         </div>
         
@@ -63,15 +65,15 @@
             </div>
         </div>
         
-        <div id="game-menu" style="display:none; width: 500pt; background-color: #f8f9fa;" 
-        class="game-menu p-4 rounded-3 shadow 
+        <div id="game-menu" style="display:none;" 
+        class="game-menu p-4 shadow rounded-4
         position-fixed top-50 start-50 translate-middle">
             
             <div class="d-flex flex-column gap-4">
                 <!-- Texto de turno -->
                 <div class="text-center">
-                    <h4 class="mb-0 fw-bold text-primary">
-                        Turno de: <span id="jugador-actual">Jugador 1</span>
+                    <h4 class="mb-0 fw-bold">
+                        Turno de: <span id="current-player">Jugador 1</span>
                     </h4>
                 </div>
                 
@@ -81,8 +83,6 @@
                 </div>
             </div>
         </div>
-
-        <div id="error-message" class="error"></div>
     </div>
     
 
@@ -97,6 +97,19 @@
             static myName = '';
             static players = [];
 
+            static get myPlayerIndex() {
+                // Si eres host, buscas por peer.id
+                // Si eres cliente, buscas por hostConnection.peer
+                const myId = this.peer?.id;
+                return this.players.findIndex(p => p.id === myId);
+            }
+
+            static getPlayerName(id){
+                return this.players[id].name;
+            }
+            static getPlayerId(arrayIndex){
+                return this.players[arrayIndex].id;
+            }
             static AddClientConn(conn) {
                 if (!this.isHost) throw new Error('Only Host');
                 
@@ -106,10 +119,22 @@
                 // Configurar evento para removerla automáticamente cuando se cierre
                 conn.on('close', () => {
                     this.RemoveClientConn(conn);
+
+                    if(UI._currentWindow === UI.WINDOWS.GAME_MENU){
+                        const errorLog = "Un jugador se salió, partida cancelada";
+                        UI.showError(errorLog);
+                        this.SendMessageToClients({
+                            type : 'error',
+                            msg: errorLog
+                        });
+
+                        
+                        cancelRoom();
+                    }
                 });
                 
                 conn.on('data', (data) => {
-                    this.HandleData(data);
+                    this.HandleData(data, conn.peer);
                 });
 
                 console.log(`Cliente conectado. Total: ${this.clientsConnections.length}`);
@@ -178,7 +203,7 @@
                 }
             }
 
-            static HandleData(data) {
+            static HandleData(data, clientID) {
                 console.log('Datos recibidos:', data);
                 
                 switch(data.type) {
@@ -223,13 +248,118 @@
                         UI.showError('Sala llena');
                         break;
                     case 'start_game':
-                        UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
+                        GameManager.onStartGame(data.initialPlayer);
+                        break;
+                    case 'error':
+                        UI.showError(data.msg);
+                        break;
+                    case 'new_turn':
+                        GameManager.newTurn();
+                        break;
+                    case 'request_new_turn':
+                        //El cliente pide al host q cambie de turno
+                        if(clientID === this.getPlayerId(GameManager.currentPlayer)){
+                            GameManager.sendOrRequestNewTurn();
+                        }
                         break;
                     default:
                 }
             }
         }
 
+        class Cell{
+            #value; //[0,5] valor de la casilla, 0 si no tiene dueño
+            #owner; //[-1, numberPlayers) dueño de la casilla, -1 si no tiene dueño
+            #currentPiece; //referencia a la ficha si tiene
+
+            set currentPiece(piece){
+                this.#currentPiece = piece;
+            }
+            set value(value){
+                this.#value = value;
+            }
+            set owner(owner){
+                this.#owner = owner;
+            }
+
+            updateCurrentPiece(){
+                this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5');
+                this.#currentPiece.classList.remove('p0','p1','p2','p3','p4','p5');
+
+                if(this.#value !== 0){
+                    this.#currentPiece.classList.add('v'+value);
+                }
+                if(this.#owner !== -1){
+                    this.#currentPiece.classList.add('p'+owner);
+                }
+            }
+        }
+        class GameManager{
+            static #currentPlayer;//id [0,6), datos en roomData.players[]
+
+            static #boardSize;
+            static #cells;
+
+            static get myId(){
+                return RoomData.myPlayerIndex;
+            }
+            static get numberOfPlayers(){
+                return RoomData.players.length;
+            }
+            static get currentPlayer(){
+                return this.#currentPlayer;
+            }
+            static get randomPlayer() {
+                return Math.floor(Math.random() * this.numberOfPlayers);
+            }
+            static set currentPlayer(value){
+                this.#currentPlayer = value;
+                UI.SetCurrentPlayer(RoomData.getPlayerName(this.currentPlayer), this.currentPlayer, this.lastPlayer, this.isMyTurn);
+                UI.SetMyTurn(this.isMyTurn);
+            }
+            static get nextPlayer(){
+                return (this.currentPlayer + 1) % this.numberOfPlayers;
+            }
+            static get lastPlayer(){
+                return (this.currentPlayer + this.numberOfPlayers - 1) % this.numberOfPlayers;
+            }
+            static get isMyTurn(){
+                return this.myId == this.currentPlayer;
+            }
+
+            static sendOrRequestNewTurn(){
+                if(RoomData.isHost){
+                    RoomData.SendMessageToClients({
+                        type: 'new_turn'
+                    });
+                    this.newTurn();
+                }
+                else{
+                    RoomData.SendMessageToHost({
+                        type: 'request_new_turn'
+                    });
+                }
+            }
+            static newTurn(){
+                this.currentPlayer = this.nextPlayer;
+            }
+
+            static onCellClick(row, col){
+                if(!this.isMyTurn) return;
+
+                UI.SpawnPiece(row, col, UI.SPAWN_DIRECTIONS.DOWN, 1, this.myId);
+                this.sendOrRequestNewTurn();
+            }
+
+            static onStartGame(initialPlayer){
+                
+                UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
+                UI.setBoard(9);
+
+                this.currentPlayer = initialPlayer;
+            }
+
+        }
         class UI{
 
             static WINDOWS = {
@@ -321,24 +451,63 @@
                         cell.dataset.col = j;
                         cell.className = 'game-board-cell';
 
-                        cell.onclick = function() {
-                            const row = parseInt(this.dataset.row);
-                            const col = parseInt(this.dataset.col);
-                            UI.PutPiece(row, col, UI.SPAWN_DIRECTIONS.LEFT);
-                        };
+                        cell.onclick = this.onCellClick;
                         row.appendChild(cell);
                     }
                     table.appendChild(row);
                 }
                 container.appendChild(table);
             }
-            static PutPiece(row, col, spawnDirection){
+
+            static onCellClick(){
+                //this es el objeto cell clickado
+                const row = parseInt(this.dataset.row);
+                const col = parseInt(this.dataset.col);
+                GameManager.onCellClick(row, col);
+            }
+
+            static SpawnPiece(row, col, spawnDirection, value, owner){
                 const piece = document.createElement('div');
                 piece.className = 'game-piece '+ spawnDirection; 
                 
                 const cell = document.querySelector(`.game-board-cell[data-row="${row}"][data-col="${col}"]`);
 
                 cell.appendChild(piece);
+
+                piece.classList.add('v'+value);
+                piece.classList.add('p'+owner);
+                
+                return piece;
+            }
+
+            static SetCurrentPlayer(name, id, lastId, isMyTurn){
+
+                const currentPlayer = document.getElementById('current-player');
+                
+                let nameToShow = name;
+                if(isMyTurn) nameToShow+= ' (tú)'; 
+                currentPlayer.textContent = nameToShow;
+
+                const board = document.getElementById('game-menu');
+                board.classList.remove('p'+lastId);
+                board.classList.add('p'+id);
+            }
+
+            static SetMyTurn(isMyTurn) {
+                // Seleccionar todas las celdas
+                const cells = document.querySelectorAll('.game-board-cell');
+                
+                if (isMyTurn) {
+                    // Activar sombreado: añadir clase yourTurn
+                    cells.forEach(cell => {
+                        cell.classList.add('myTurn');
+                    });
+                } else {
+                    // Desactivar sombreado: quitar clase yourTurn
+                    cells.forEach(cell => {
+                        cell.classList.remove('myTurn');
+                    });
+                }
             }
         }
         
@@ -461,14 +630,17 @@
         }
         
         function startGame(){
-            UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
+            //El host da a empezar partida
 
+            //avisar a los jugadores de q empiecen partida
+            const initialPlayer = GameManager.randomPlayer;
             RoomData.SendMessageToClients({
                 type: 'start_game',
+                initialPlayer: initialPlayer
             });
-
-            UI.setBoard(9);
-
+            
+            //empezarla nosotros
+            GameManager.onStartGame(initialPlayer);
         }
 
         function cancelRoom() {

@@ -93,14 +93,38 @@ button:disabled { opacity: 0.5; }
     flex-direction: column;
 }
 /* UI PARTIDA */
+.game-menu{
+    width: 500pt;
+    background-color : rgb(248, 248, 248);
+}
+.game-menu.p0{
+    background-color: rgb(255, 255, 184);
+}
+.game-menu.p1{
+    background-color: rgb(255, 199, 199);
+}
+.game-menu.p2{
+    background-color: rgb(181, 255, 255);
+}
+.game-menu.p3{
+    background-color: rgb(199, 255, 199);
+}
+.game-menu.p4{
+    background-color: rgb(255, 224, 189);
+}
+.game-menu.p5{
+    background-color: rgb(247, 212, 255);
+}
 .game-board{
     border-collapse: separate;
     
-    background-color : #f0ffff;
+    background-color : #ffffff3b;
     margin : 0 auto;
     
-    border : 3px solid rgb(205, 254, 255);
+    border : 3px solid rgba(0, 0, 0, 0.122);
     border-radius: 17px;
+    
+    box-shadow: 0px 9px 12px rgba(0,0,0,0.3);
 }
 .game-board-cell{
     width : 60px;
@@ -108,35 +132,78 @@ button:disabled { opacity: 0.5; }
     text-align : center;
     font-Size : 24px;
     font-Weight : bold;
-    cursor : pointer;
 
-    background-color : #e9ffff;
-    border : 3px solid rgb(174, 233, 234);
+    background-color : #ffffff69;
+    border : 3px solid rgba(0, 0, 0, 0.159);
     
     border-radius: 13px;
+    
+    box-shadow: 0px 2px 3px rgba(0,0,0,0.2);
 
     position: relative;
 }
-.game-board-cell:hover, .game-board-cell.yourTurn{
+.game-board-cell.myTurn:hover{
+    
+    cursor : pointer;
     background-color : #c6ffff;
     border : 3px solid rgb(132, 206, 208);
 }
 .game-piece{
-    width : 40px;
-    height : 40px;
+    width : 50px;
+    height : 50px;
 
     position: absolute;
-    background-image: url('IMGs/yo.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
+
+    
+    border : 3px solid rgba(0, 0, 0, 0.159);
+    
+    border-radius: 20px;
+    
+    box-shadow: 0px 2px 3px rgba(0,0,0,0.6);
 
     top: 50%;
     left: 50%;
     
     transform: translateX(-50%) translateY(-50%) scale(1);
     z-index: 10;
+}
+.game-piece.p0{
+    background-color: rgb(255, 255, 184);
+}
+.game-piece.p1{
+    background-color: rgb(255, 199, 199);
+}
+.game-piece.p2{
+    background-color: rgb(181, 255, 255);
+}
+.game-piece.p3{
+    background-color: rgb(199, 255, 199);
+}
+.game-piece.p4{
+    background-color: rgb(255, 224, 189);
+}
+.game-piece.p5{
+    background-color: rgb(247, 212, 255);
+}
+
+.game-piece.v1{
+    background-image: url('IMGs/Game/v1.png');
+}
+.game-piece.v2{
+    background-image: url('IMGs/Game/v2.png');
+}
+.game-piece.v3{
+    background-image: url('IMGs/Game/v3.png');
+}
+.game-piece.v4{
+    background-image: url('IMGs/Game/v4.png');
+}
+.game-piece.v5{
+    background-image: url('IMGs/Game/v5.png');
 }
 @keyframes goLeftWhenSpawn {
     0% { 
