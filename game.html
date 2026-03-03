@@ -16,7 +16,7 @@
         
     </style>
 </head>
-<body>
+<body style="background-color: black;">
     <div class ="container-fluid d-flex align-items-center justify-content-center">
         <div id= "main-menu" style="display:block;" class = "main-menu position-fixed top-50 start-50 translate-middle">
             
@@ -43,7 +43,7 @@
         <div id="room-menu" style="display:none; " class = "room-menu mt-5 p-2">
             
             <div class="d-flex flex-column justify-content-center align-items-center gap-2 p-2">
-                <h4>ID Sala: <span id="displayRoomCode"></span></h4>
+                <h4 style="font-weight: bold;">ID Sala: <span id="displayRoomCode"></span></h4>
                 <div id="connection-status"></div>
                 
                 <!-- Lista de jugadores conectados -->
@@ -253,12 +253,12 @@
                         UI.showError(data.msg);
                         break;
                     case 'new_turn':
-                        GameManager.newTurn();
+                        GameManager.newTurnClient(data.id);
                         break;
                     case 'client_Click':
                         if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
                             //El jugador dio click
-                            GameManager.onCellClick(data.row, data.col, data.firstTurn ?? false, GameManager.currentPlayer);
+                            GameManager.onCellClick(data.row, data.col, GameManager.currentPlayer);
                         }
                         break;
                     case 'spawn_initial_piece':
@@ -325,7 +325,9 @@
             set owner(_owner){
                 this.#owner = _owner;
             }
-
+            get owner(){
+                return this.#owner;
+            }
             get imTheOwner(){
                 return GameManager.myId === this.#owner;
             }
@@ -340,14 +342,19 @@
             minusFour(){
                 if(this.#value === 4){
                     this.delete();
+                    return true;
                 }
-                else if(this.#value>4){
+                
+                if(this.#value>4){
                     this.#value -= 4;
 
                     this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5', 'v6');
 
                     this.#currentPiece.classList.add('v'+this.#value);
+                    return false;
                 }
+
+                return false;
             }
 
             delete(){
@@ -358,10 +365,21 @@
             }
             updateCell(){
                 //borrar las q caen encima, y sumar sus valores a la q habia
+                let result;
+
                 if(this.#nextPieces){
                     const numberOfPieces = this.cleanNextPieces();
 
+                    const oldOwner = this.#owner;
                     this.#owner = GameManager.currentPlayer;
+
+                    if(oldOwner != this.#owner){
+                        result = {
+                            lastOwner: oldOwner,
+                            currentOwner: this.#owner
+                        }
+                    }
+
                     this.#value+= numberOfPieces;
 
                     //le caen encima n fichas del jugador current, lo cual cambia el dueño de la ficha de esta celda y su valor
@@ -377,17 +395,18 @@
                 if(this.#owner !== -1){
                     this.#currentPiece.classList.add('p'+this.#owner);
                 }
+
+                return result;
             }
         }
         class GameManager{
             static #currentPlayer;//id [0,6), datos en roomData.players[]
 
+            static numberOfPlayers = 0;
             static get myId(){
                 return RoomData.myPlayerIndex;
             }
-            static get numberOfPlayers(){
-                return RoomData.players.length;
-            }
+            
             static get currentPlayer(){
                 return this.#currentPlayer;
             }
@@ -417,9 +436,15 @@
             static #boardSize;
             static #cells;
             static #cellsAboutToExplode = [];
+
             static #positionsToUpdate = new Set();
+
+            
+            static #pointsPerPlayer = [];
+            static #deathPlayers = new Set();
             
             static resetPositionsToUpdate(){ this.#positionsToUpdate = new Set(); }
+            static resetDeathPlayers(){ this.#deathPlayers = new Set(); }
 
             static set boardSize(value){
                 
@@ -452,44 +477,84 @@
             }
 
             static #canActThisTurn = true; //solo una accion por turno, la usa el server solo
-            static newTurn(){
+            static newTurnHost(){
                 if(RoomData.isHost){
-                    RoomData.SendMessageToClients({
-                        type: 'new_turn'
-                    });
-                    this.#canActThisTurn = true;
+                    
+                    let i = 0;
+                    
+                    if(this.isMyFirstTurn){
+                        this.#initialTurn = false;
+                    }
+
+                    while(i< this.numberOfPlayers){
+                        console.log("Puntos de "+i+": "+this.#pointsPerPlayer[i]);
+                        i++;
+                    }
+                    if(this.#deathPlayers.size === this.numberOfPlayers-1){
+                        //gano el current
+
+                        setTimeout(() => {
+                            cancelRoom();
+                        }, 1500);
+                    }
+                    else{
+                        this.currentPlayer = this.nextPlayer;
+                        while(this.#deathPlayers.has(this.currentPlayer)){
+                            
+                            this.currentPlayer = this.nextPlayer;
+                        }
+                        RoomData.SendMessageToClients({
+                            type: 'new_turn',
+                            id: this.currentPlayer
+                        });
+                        this.#canActThisTurn = true;
+                    }
+                    
                 }
 
+                
+                
+            }
+
+            static newTurnClient(currentPlayer){
                 if(this.isMyFirstTurn){
                     this.#initialTurn = false;
                 }
-                this.currentPlayer = this.nextPlayer;
+
+                this.currentPlayer = currentPlayer;
+               
             }
 
             static onCellClick_DoOrReq(row, col){
                 if(!this.isMyTurn) return;
 
                 if(RoomData.isHost){
-                    this.onCellClick(row, col, this.isMyFirstTurn, this.myId);
+                    this.onCellClick(row, col, this.myId);
                 }
                 else{
                     RoomData.SendMessageToHost({
                         type: 'client_Click',
                         row: row,
-                        col: col,
-                        ...(this.isMyFirstTurn && { firstTurn: true }) // solo enviar si es true
+                        col: col
                     });
                 }
 
             }
             
-            static onCellClick(row, col, firstTurn, id){
+            static onCellClick(row, col, id){
                 //Se llama en host cuando el jugador haga click en su turno
 
                 //El host simula la ronda, y le envia a los jugadores info para recrear la simulacion
                 //opcional: mandar al principio de cada turno todo el tablero por si no les llegó algún mensaje de la simulación del turno anterior
                 if(this.#canActThisTurn === false) return;
+                const firstTurn = this.#pointsPerPlayer[id] === -1;
 
+               let i = 0;
+                while(i< this.numberOfPlayers){
+                    console.log("Puntos de "+i+": "+this.#pointsPerPlayer[i]);
+                    i++;
+                }
+                
                 const cell = this.getCell(row,col);
                 this.SpawnPiecePhase(row, col, firstTurn, id, cell);
             }
@@ -505,7 +570,7 @@
 
                         this.#canActThisTurn = false; //este no es necesario, pero por si luego meto timeOut
                         this.SpawnInitialPiece(row, col, id);
-                        this.newTurn();
+                        this.newTurnHost();
 
                     }
                 }
@@ -527,8 +592,10 @@
                 }
             }
 
-             static SpawnInitialPiece(row, col, pieceOwner){
+            static SpawnInitialPiece(row, col, pieceOwner){
                 if(RoomData.isHost){
+                    this.#pointsPerPlayer[GameManager.currentPlayer] = 1;
+
                     RoomData.SendMessageToClients({
                         type: 'spawn_initial_piece',
                         row: row,
@@ -548,6 +615,8 @@
 
             static SpawnPiece(row, col, pieceOwner, spawnDirection){
                 if(RoomData.isHost){
+                    
+                    this.#pointsPerPlayer[pieceOwner]++;
                     RoomData.SendMessageToClients({
                         type: 'spawn_piece',
                         row: row,
@@ -572,7 +641,7 @@
                 }
                 
                 const cell = this.getCell(row,col);
-                cell.updateCell();
+                const result = cell.updateCell();
 
                 if(RoomData.isHost){
                     if(cell.value >= 4){
@@ -582,10 +651,20 @@
                             cell: cell
                         });
                     }
+
+                    if(result){
+                        this.#pointsPerPlayer[result.lastOwner]--;
+                        if(this.#pointsPerPlayer[result.lastOwner]===0){
+                            this.#deathPlayers.add(result.lastOwner);
+                        }
+
+                        this.#pointsPerPlayer[result.currentOwner]++;
+                    }
                 }
             }
             
             static MinusFour(row, col){
+                
                 if(RoomData.isHost){
                     RoomData.SendMessageToClients({
                         type: 'minus_four',
@@ -595,7 +674,16 @@
                 }
                 
                 const cell = this.getCell(row,col);
-                cell.minusFour();
+                const result = cell.minusFour();
+
+                if(RoomData.isHost && result === true){
+                    this.#pointsPerPlayer[cell.owner]--;
+                    if(this.#pointsPerPlayer[cell.owner]===0){
+                        this.#deathPlayers.add(cell.owner);
+                    }
+
+                }
+                    
             }
             
             static ExplodeCells(){
@@ -626,7 +714,7 @@
                     },300);
                 }
                 else{
-                    this.newTurn();
+                    this.newTurnHost();
                 }
             }
             static ExplodeCell(row, col, cell){
@@ -667,9 +755,23 @@
 
             static onStartGame(initialPlayer){
                 
+                this.numberOfPlayers = RoomData.players.length;
+
+                if(RoomData.isHost){
+                    this.#deathPlayers = [];
+                    this.#pointsPerPlayer = [];
+                    let i = 0;
+                    while(i< this.numberOfPlayers){
+                        this. #pointsPerPlayer.push(-1);
+                        i++;
+                    }
+                }
+            
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
                 this.#cellsAboutToExplode = [];
                 this.resetPositionsToUpdate();
+                this.resetDeathPlayers();
+                
 
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
                 
@@ -825,6 +927,8 @@
             }
 
             static SetMyTurn(isMyTurn, isMyFirstTurn) {
+                console.log('ist '+ isMyTurn);
+                console.log('isFFFt '+ isMyFirstTurn);
                 // Seleccionar todas las celdas
                 const cells = document.querySelectorAll('.game-board-cell');
                 
@@ -990,20 +1094,22 @@
         function startGame(){
             //El host da a empezar partida
 
-            if(GameManager.numberOfPlayers === 1){
+            if(RoomData.players.length === 1){
                 UI.showError('Se necesitan 2 jugadores mínimo');
                 return;
             }
 
             //avisar a los jugadores de q empiecen partida
             const initialPlayer = GameManager.randomPlayer;
+            
+            //empezarla nosotros
+            GameManager.onStartGame(initialPlayer);
+
             RoomData.SendMessageToClients({
                 type: 'start_game',
                 initialPlayer: initialPlayer
             });
             
-            //empezarla nosotros
-            GameManager.onStartGame(initialPlayer);
         }
 
         function cancelRoom() {
