@@ -36,32 +36,33 @@
                     class="btn btn-primary w-100 rounded-4">Unirse</button>
                 </div>
 
-                <div id="error-message" class="error w-100"></div>
+                <div id="error-message-main" class="error w-100"></div>
             </div>
         </div>
         
-        
         <div id="room-menu" style="display:none; " class = "room-menu mt-5 p-2">
             
-            <div class="d-flex flex-column justify-content-center align-items-center gap-2 p-2"></div>
+            <div class="d-flex flex-column justify-content-center align-items-center gap-2 p-2">
                 <h4>ID Sala: <span id="displayRoomCode"></span></h4>
                 <div id="connection-status"></div>
                 
                 <!-- Lista de jugadores conectados -->
-                <div class="player-list">
+                <div class="player-list w-100">
                     <ul id="players-list">
                         <!-- Se llena dinámicamente -->
                     </ul>
                 </div>
             
                
-                <button onclick="cancelRoom()" id="cancelBtn"
-                class="btn btn-primary w-30 rounded-4">Atrás</button>
                 
-                <button onclick="startGame()" style="margin-top: 10px;" id="startBtn"
+                <button onclick="startGame()" style="margin-top: 10px; width: 150pt;" id="startBtn"
                 class="btn btn-primary w-30 rounded-4"
                 style="display:none; ">Empezar Partida</button>
                 
+                <button onclick="cancelRoom()" style="width: 150pt;" id="cancelBtn"
+                class="btn btn-primary w-30 rounded-4">Atrás</button>
+                
+                <div id="error-message-room" class="error w-100 mt-2"></div>
             </div>
         </div>
         
@@ -254,17 +255,23 @@
                     case 'new_turn':
                         GameManager.newTurn();
                         break;
-                    case 'request_new_turn':
-                        //El cliente pide al host q cambie de turno
-                        if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
-                            GameManager.NewTurn_DoOrReq();
-                        }
-                        break;
                     case 'client_Click':
                         if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
                             //El jugador dio click
-                            GameManager.onCellClick(data.row, data.col, data.firstTurn ?? false, this.getPlayerId(clientID));
+                            GameManager.onCellClick(data.row, data.col, data.firstTurn ?? false, GameManager.currentPlayer);
                         }
+                        break;
+                    case 'spawn_initial_piece':
+                        GameManager.SpawnInitialPiece(data.row, data.col, data.ownerId);
+                        break;
+                    case 'spawn_piece':
+                        GameManager.SpawnPiece(data.row, data.col, data.ownerId, data.spawnDirection);
+                        break;
+                    case 'update_and_check':
+                        GameManager.UpdateAndCheckCell(data.row, data.col);
+                        break;
+                    case 'minus_four':
+                        GameManager.MinusFour(data.row, data.col);
                         break;
                     default:
                 }
@@ -272,7 +279,7 @@
         }
 
         class Cell{
-            #value; //[0,5] valor de la casilla, 0 si no tiene dueño
+            #value; //[0,6] valor de la casilla, 0 si no tiene dueño
             #owner; //[-1, numberPlayers) dueño de la casilla, -1 si no tiene dueño
             #currentPiece; //referencia a la ficha si tiene
 
@@ -290,11 +297,33 @@
             addNextPiece(piece) {
                 this.#nextPieces.push(piece);
             }
-            set value(value){
-                this.#value = value;
+            cleanNextPieces(){
+                const numberOfPieces = this.#nextPieces.length;
+                
+                if (numberOfPieces > 0) {
+                    // Si no hay currentPiece, la primera pieza se conserva
+                    if (this.#currentPiece === null) {
+                        this.#currentPiece = this.#nextPieces[0];
+                        
+                        for (let i = 1; i < numberOfPieces; i++) {
+                            this.#nextPieces[i].remove(); //remove borra del DOM, no del array
+                        }
+                    } else {
+                        // Si ya hay currentPiece, eliminar TODAS las nextPieces
+                        this.#nextPieces.forEach(piece => piece.remove());
+                    }
+                }
+                this.#nextPieces = [];
+                return numberOfPieces;
             }
-            set owner(owner){
-                this.#owner = owner;
+            get value(){
+                return this.#value;
+            }
+            set value(_value){
+                this.#value = _value;
+            }
+            set owner(_owner){
+                this.#owner = _owner;
             }
 
             get imTheOwner(){
@@ -304,30 +333,49 @@
                 return this.#owner !== -1;
             }
 
-            removeCurrentPiece(){
+            isOwner(id){
+                return this.#owner === id;
+            }
+
+            minusFour(){
+                if(this.#value === 4){
+                    this.delete();
+                }
+                else if(this.#value>4){
+                    this.#value -= 4;
+
+                    this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5', 'v6');
+
+                    this.#currentPiece.classList.add('v'+this.#value);
+                }
+            }
+
+            delete(){
+                this.#value = 0;
+                this.#owner = -1;
                 this.#currentPiece.remove();
                 this.#currentPiece = null;
             }
             updateCell(){
-                let i = 0;
-                this.#nextPieces.forEach(piece => {
-                    this.#value++;
+                //borrar las q caen encima, y sumar sus valores a la q habia
+                if(this.#nextPieces){
+                    const numberOfPieces = this.cleanNextPieces();
+
                     this.#owner = GameManager.currentPlayer;
+                    this.#value+= numberOfPieces;
 
-                    piece.remove();
+                    //le caen encima n fichas del jugador current, lo cual cambia el dueño de la ficha de esta celda y su valor
+                }
+                if(this.#currentPiece === null) return;
 
-                    i++;
-                });
-                this.#nextPieces = [];
-
-                this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5');
+                this.#currentPiece.classList.remove('v1', 'v2', 'v3', 'v4', 'v5', 'v6');
                 this.#currentPiece.classList.remove('p0','p1','p2','p3','p4','p5');
 
                 if(this.#value !== 0){
-                    this.#currentPiece.classList.add('v'+this.value);
+                    this.#currentPiece.classList.add('v'+this.#value);
                 }
                 if(this.#owner !== -1){
-                    this.#currentPiece.classList.add('p'+this.owner);
+                    this.#currentPiece.classList.add('p'+this.#owner);
                 }
             }
         }
@@ -368,6 +416,10 @@
 
             static #boardSize;
             static #cells;
+            static #cellsAboutToExplode = [];
+            static #positionsToUpdate = new Set();
+            
+            static resetPositionsToUpdate(){ this.#positionsToUpdate = new Set(); }
 
             static set boardSize(value){
                 
@@ -382,8 +434,9 @@
                         this.#cells[i][j] = new Cell();
                     }
                 }
-            }
 
+                this.#boardSize = value;
+            }
             static getCell(row, col) {
                 return this.#cells[row][col];
             }
@@ -391,29 +444,25 @@
             static updateAllCells() {
                 this.#cells.forEach(row => {
                     row.forEach(cell => {
-                        cell.updateCurrentPiece();
+                        cell.cleanNextPieces();
+                        cell.updateCell();
+                        cell.next
                     });
                 });
             }
 
-            static NewTurn_DoOrReq(){
+            static #canActThisTurn = true; //solo una accion por turno, la usa el server solo
+            static newTurn(){
                 if(RoomData.isHost){
                     RoomData.SendMessageToClients({
                         type: 'new_turn'
                     });
-                    this.newTurn();
+                    this.#canActThisTurn = true;
                 }
-                else{
-                    RoomData.SendMessageToHost({
-                        type: 'request_new_turn'
-                    });
-                }
-            }
-            static newTurn(){
+
                 if(this.isMyFirstTurn){
                     this.#initialTurn = false;
                 }
-
                 this.currentPlayer = this.nextPlayer;
             }
 
@@ -432,31 +481,195 @@
                     });
                 }
 
-                this.NewTurn_DoOrReq();
             }
             
             static onCellClick(row, col, firstTurn, id){
                 //Se llama en host cuando el jugador haga click en su turno
+
+                //El host simula la ronda, y le envia a los jugadores info para recrear la simulacion
+                //opcional: mandar al principio de cada turno todo el tablero por si no les llegó algún mensaje de la simulación del turno anterior
+                if(this.#canActThisTurn === false) return;
+
+                const cell = this.getCell(row,col);
+                this.SpawnPiecePhase(row, col, firstTurn, id, cell);
+            }
+
+           
+
+            static SpawnPiecePhase(row, col, firstTurn, id, cell){
+                
                 if(firstTurn){
                     //Primer turno de ese jugador
                     //Spawnear ficha
-                    const value = 3; const owner = id;
-                    const piece = UI.SpawnPiece(row, col, UI.SPAWN_DIRECTIONS.DOWN, value, owner);
-                    const cell = this.getCell(row,col);
-                    cell.currentPiece = piece;
-                    cell.owner = owner;
-                    cell.value = value;
+                    if(cell.hasOwner === false){
 
-                    cell.updateCell();
+                        this.#canActThisTurn = false; //este no es necesario, pero por si luego meto timeOut
+                        this.SpawnInitialPiece(row, col, id);
+                        this.newTurn();
+
+                    }
                 }
                 else{
                     //Sumar 1 a la casilla, si es suya
+                    if(cell.isOwner(id)){
+                        
+                        this.#canActThisTurn = false;
+                        this.SpawnPiece(row, col, id, UI.SPAWN_DIRECTIONS.DOWN);
+                        
+                        setTimeout(() => {
+                            //actualizar el valor donde la pieza cae dentro de 0.6 segundos (lo q tarda en caer)
+                            this.UpdateAndCheckCell(row, col);
+                            
+                            this.ExplodeCells();
 
+                        }, 600);
+                    }
                 }
             }
+
+             static SpawnInitialPiece(row, col, pieceOwner){
+                if(RoomData.isHost){
+                    RoomData.SendMessageToClients({
+                        type: 'spawn_initial_piece',
+                        row: row,
+                        col: col,
+                        ownerId: pieceOwner
+                    });
+                }
+                
+                const cell = this.getCell(row,col);
+
+                const piece = UI.SpawnPiece(row, col, UI.SPAWN_DIRECTIONS.DOWN, 3, pieceOwner);
+
+                cell.currentPiece = piece;
+                cell.owner = pieceOwner;
+                cell.value = 3;
+            }
+
+            static SpawnPiece(row, col, pieceOwner, spawnDirection){
+                if(RoomData.isHost){
+                    RoomData.SendMessageToClients({
+                        type: 'spawn_piece',
+                        row: row,
+                        col: col,
+                        spawnDirection: spawnDirection,
+                        ownerId: pieceOwner
+                    });
+                }
+
+                const cell = this.getCell(row,col);
+                const piece = UI.SpawnPiece(row, col, spawnDirection, 1, pieceOwner);
+                cell.addNextPiece(piece);
+            }
+
+            static UpdateAndCheckCell(row, col){
+                if(RoomData.isHost){
+                    RoomData.SendMessageToClients({
+                        type: 'update_and_check',
+                        row: row,
+                        col: col
+                    });
+                }
+                
+                const cell = this.getCell(row,col);
+                cell.updateCell();
+
+                if(RoomData.isHost){
+                    if(cell.value >= 4){
+                        this.#cellsAboutToExplode.push({
+                            row: row,
+                            col: col,
+                            cell: cell
+                        });
+                    }
+                }
+            }
+            
+            static MinusFour(row, col){
+                if(RoomData.isHost){
+                    RoomData.SendMessageToClients({
+                        type: 'minus_four',
+                        row: row,
+                        col: col
+                    });
+                }
+                
+                const cell = this.getCell(row,col);
+                cell.minusFour();
+            }
+            
+            static ExplodeCells(){
+                //esta fase mira si hay fichas con valor >=4, si es asi las explotamos y spawneeamos más, hasta q no queden de 4o+
+
+                if(this.#cellsAboutToExplode.length > 0){
+                    setTimeout(() => {
+                        //Comenzar explosiones 0.3 segs despues
+
+                        //Spawnear fichas
+                        this.#cellsAboutToExplode.forEach(cellData => {
+                            this.ExplodeCell(cellData.row, cellData.col, cellData.cell);
+                        });
+                        this.#cellsAboutToExplode=[];
+
+                        setTimeout(() => {
+                            //hacer updates para actualizar ui y valores
+                            //haremos el update de todas las casillas donde estas han caido
+                            this.#positionsToUpdate.forEach(position => {
+                                const [r, c] = position.split(',').map(Number);
+                                this.UpdateAndCheckCell(r,c);
+                            });
+                            this.resetPositionsToUpdate(); //limpiar despues
+
+                            this.ExplodeCells();
+                        },600);
+
+                    },300);
+                }
+                else{
+                    this.newTurn();
+                }
+            }
+            static ExplodeCell(row, col, cell){
+                this.MinusFour(row, col);
+                console.log('Explota :'+row+ ' , '+col);
+                //Up
+                if(row-1 >= 0){
+                    this.SpawnPiece(row-1, col, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.UP);
+                    this.#positionsToUpdate.add(`${row-1},${col}`);
+
+                    console.log('Genera :'+(row-1)+ ' , '+col);
+                }
+                //Down
+                if(row+1 < this.#boardSize){
+                    this.SpawnPiece(row+1, col, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.DOWN);
+                   
+                    this.#positionsToUpdate.add(`${row+1},${col}`);
+
+                    
+                    console.log('Genera :'+(row+1)+ ' , '+col);
+                }
+                //Left
+                if(col-1 >= 0){
+                    this.SpawnPiece(row, col-1, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.LEFT);
+                    this.#positionsToUpdate.add(`${row},${col-1}`);
+
+                    
+                    console.log('Genera :'+row+ ' , '+(col-1));
+                }
+                //Right
+                if(col+1 < this.#boardSize){
+                    this.SpawnPiece(row, col+1, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.RIGHT);
+                    this.#positionsToUpdate.add(`${row},${col+1}`); 
+                        
+                    console.log('Genera :'+row+ ' , '+(col+1));
+                }
+            }
+
             static onStartGame(initialPlayer){
                 
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
+                this.#cellsAboutToExplode = [];
+                this.resetPositionsToUpdate();
 
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
                 
@@ -501,7 +714,15 @@
             }
 
             static showError(msg) {
-                document.getElementById('error-message').textContent = msg;
+                switch(this._currentWindow){
+                    case UI.WINDOWS.MAIN_MENU:
+                        document.getElementById('error-message-main').textContent = msg;
+                        break;
+                    case UI.WINDOWS.ROOM_MENU:
+                        document.getElementById('error-message-room').textContent = msg;
+                        break;
+                }
+                
             }
 
             static setPlayerList(playerList) {
@@ -577,16 +798,16 @@
             }
 
             static SpawnPiece(row, col, spawnDirection, value, owner){
+
                 const piece = document.createElement('div');
                 piece.className = 'game-piece '+ spawnDirection; 
                 
                 const cell = document.querySelector(`.game-board-cell[data-row="${row}"][data-col="${col}"]`);
-
                 cell.appendChild(piece);
 
                 piece.classList.add('v'+value);
                 piece.classList.add('p'+owner);
-                
+
                 return piece;
             }
 
@@ -604,8 +825,6 @@
             }
 
             static SetMyTurn(isMyTurn, isMyFirstTurn) {
-                console.log('myT: '+isMyTurn);
-                console.log('myFT: '+isMyFirstTurn);
                 // Seleccionar todas las celdas
                 const cells = document.querySelectorAll('.game-board-cell');
                 
@@ -770,6 +989,11 @@
         
         function startGame(){
             //El host da a empezar partida
+
+            if(GameManager.numberOfPlayers === 1){
+                UI.showError('Se necesitan 2 jugadores mínimo');
+                return;
+            }
 
             //avisar a los jugadores de q empiecen partida
             const initialPlayer = GameManager.randomPlayer;
