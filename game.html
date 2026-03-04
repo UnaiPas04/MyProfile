@@ -580,12 +580,12 @@
                         this.SpawnPiece(row, col, id, UI.SPAWN_DIRECTIONS.DOWN);
                         
                         setTimeout(() => {
-                            //actualizar el valor donde la pieza cae dentro de 0.6 segundos (lo q tarda en caer)
+                            //actualizar el valor donde la pieza cae dentro de n segundos (lo q tarda en caer)
                             this.UpdateAndCheckCell(row, col);
                             
                             this.ExplodeCells();
 
-                        }, 600);
+                        }, 300);
                     }
                 }
             }
@@ -667,7 +667,7 @@
 
                 if(this.#cellsAboutToExplode.length > 0){
                     setTimeout(() => {
-                        //Comenzar explosiones 0.3 segs despues
+                        //Comenzar explosiones 0.1 segs despues
 
                         //Spawnear fichas
                         this.#cellsAboutToExplode.forEach(cellData => {
@@ -685,9 +685,9 @@
                             this.resetPositionsToUpdate(); //limpiar despues
 
                             this.ExplodeCells();
-                        },600);
+                        },300);
 
-                    },300);
+                    },200);
                 }
                 else{
                     this.newTurnHost();

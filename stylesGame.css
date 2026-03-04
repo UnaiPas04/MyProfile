@@ -251,14 +251,14 @@ button:disabled { opacity: 0.5; }
 }
 
 .anim-left {
-    animation: goLeftWhenSpawn 0.6s ease-out;
+    animation: goLeftWhenSpawn 0.4s ease-out;
 }
 .anim-right {
-    animation: goRightWhenSpawn 0.6s ease-out;
+    animation: goRightWhenSpawn 0.4s ease-out;
 }
 .anim-up {
-    animation: goUpWhenSpawn 0.6s ease-out;
+    animation: goUpWhenSpawn 0.4s ease-out;
 }
 .anim-down {
-    animation: goDownWhenSpawn 0.6s ease-out;
+    animation: goDownWhenSpawn 0.4s ease-out;
 }
