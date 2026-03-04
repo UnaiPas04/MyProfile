@@ -292,6 +292,9 @@
             }
 
             set currentPiece(piece){
+                if(RoomData.isHost){
+                    GameManager.addPointToPlayer(this.#owner);
+                }
                 this.#currentPiece = piece;
             }
             addNextPiece(piece) {
@@ -303,14 +306,16 @@
                 if (numberOfPieces > 0) {
                     // Si no hay currentPiece, la primera pieza se conserva
                     if (this.#currentPiece === null) {
-                        this.#currentPiece = this.#nextPieces[0];
+                        this.currentPiece = this.#nextPieces[0];
                         
                         for (let i = 1; i < numberOfPieces; i++) {
                             this.#nextPieces[i].remove(); //remove borra del DOM, no del array
                         }
                     } else {
                         // Si ya hay currentPiece, eliminar TODAS las nextPieces
-                        this.#nextPieces.forEach(piece => piece.remove());
+                        this.#nextPieces.forEach(piece =>{
+                            piece.remove();
+                        });
                     }
                 }
                 this.#nextPieces = [];
@@ -323,6 +328,17 @@
                 this.#value = _value;
             }
             set owner(_owner){
+                if(RoomData.isHost){
+                    
+                    //Si cambia de dueño o se le asigna dueño
+                    if(_owner != this.owner){
+                        if(this.owner !== -1){
+                            GameManager.removePointFromPlayer(this.owner);
+                        }
+                        GameManager.addPointToPlayer(_owner);
+                    }
+                }
+               
                 this.#owner = _owner;
             }
             get owner(){
@@ -342,7 +358,6 @@
             minusFour(){
                 if(this.#value === 4){
                     this.delete();
-                    return true;
                 }
                 
                 if(this.#value>4){
@@ -353,33 +368,21 @@
                     this.#currentPiece.classList.add('v'+this.#value);
                     return false;
                 }
-
-                return false;
             }
 
             delete(){
                 this.#value = 0;
-                this.#owner = -1;
+                this.owner = -1;
                 this.#currentPiece.remove();
+                
                 this.#currentPiece = null;
             }
             updateCell(){
                 //borrar las q caen encima, y sumar sus valores a la q habia
-                let result;
 
                 if(this.#nextPieces){
                     const numberOfPieces = this.cleanNextPieces();
-
-                    const oldOwner = this.#owner;
-                    this.#owner = GameManager.currentPlayer;
-
-                    if(oldOwner != this.#owner){
-                        result = {
-                            lastOwner: oldOwner,
-                            currentOwner: this.#owner
-                        }
-                    }
-
+                    this.owner = GameManager.currentPlayer;
                     this.#value+= numberOfPieces;
 
                     //le caen encima n fichas del jugador current, lo cual cambia el dueño de la ficha de esta celda y su valor
@@ -395,8 +398,6 @@
                 if(this.#owner !== -1){
                     this.#currentPiece.classList.add('p'+this.#owner);
                 }
-
-                return result;
             }
         }
         class GameManager{
@@ -414,15 +415,13 @@
                 return Math.floor(Math.random() * this.numberOfPlayers);
             }
             static set currentPlayer(value){
+                const lastVal = this.#currentPlayer;
                 this.#currentPlayer = value;
-                UI.SetCurrentPlayer(RoomData.getPlayerName(this.currentPlayer), this.currentPlayer, this.lastPlayer, this.isMyTurn);
+                UI.SetCurrentPlayer(RoomData.getPlayerName(this.currentPlayer), this.currentPlayer, lastVal, this.isMyTurn);
                 UI.SetMyTurn(this.isMyTurn, this.isMyFirstTurn);
             }
             static get nextPlayer(){
                 return (this.currentPlayer + 1) % this.numberOfPlayers;
-            }
-            static get lastPlayer(){
-                return (this.currentPlayer + this.numberOfPlayers - 1) % this.numberOfPlayers;
             }
             static get isMyTurn(){
                 return this.myId == this.currentPlayer;
@@ -440,7 +439,18 @@
             static #positionsToUpdate = new Set();
 
             
-            static #pointsPerPlayer = [];
+            static pointsPerPlayer = [];
+            static addPointToPlayer(playerId){
+                if(this.pointsPerPlayer[playerId] === -1){
+                    const p = this.pointsPerPlayer[playerId] = 1;
+                }
+                else{
+                    const p = this.pointsPerPlayer[playerId]++;
+                }
+            }
+            static removePointFromPlayer(playerId){
+                this.pointsPerPlayer[playerId]--;
+            }
             static #deathPlayers = new Set();
             
             static resetPositionsToUpdate(){ this.#positionsToUpdate = new Set(); }
@@ -466,16 +476,6 @@
                 return this.#cells[row][col];
             }
 
-            static updateAllCells() {
-                this.#cells.forEach(row => {
-                    row.forEach(cell => {
-                        cell.cleanNextPieces();
-                        cell.updateCell();
-                        cell.next
-                    });
-                });
-            }
-
             static #canActThisTurn = true; //solo una accion por turno, la usa el server solo
             static newTurnHost(){
                 if(RoomData.isHost){
@@ -487,7 +487,11 @@
                     }
 
                     while(i< this.numberOfPlayers){
-                        console.log("Puntos de "+i+": "+this.#pointsPerPlayer[i]);
+                        console.log("Puntos de "+i+": "+this.pointsPerPlayer[i]);
+                        if(this.pointsPerPlayer[i]==0){
+                            console.log("Muerto");
+                            this.#deathPlayers.add(i)
+                        }
                         i++;
                     }
                     if(this.#deathPlayers.size === this.numberOfPlayers-1){
@@ -500,7 +504,6 @@
                     else{
                         this.currentPlayer = this.nextPlayer;
                         while(this.#deathPlayers.has(this.currentPlayer)){
-                            
                             this.currentPlayer = this.nextPlayer;
                         }
                         RoomData.SendMessageToClients({
@@ -509,11 +512,7 @@
                         });
                         this.#canActThisTurn = true;
                     }
-                    
                 }
-
-                
-                
             }
 
             static newTurnClient(currentPlayer){
@@ -547,11 +546,10 @@
                 //El host simula la ronda, y le envia a los jugadores info para recrear la simulacion
                 //opcional: mandar al principio de cada turno todo el tablero por si no les llegó algún mensaje de la simulación del turno anterior
                 if(this.#canActThisTurn === false) return;
-                const firstTurn = this.#pointsPerPlayer[id] === -1;
+                const firstTurn = this.pointsPerPlayer[id] === -1;
 
                let i = 0;
                 while(i< this.numberOfPlayers){
-                    console.log("Puntos de "+i+": "+this.#pointsPerPlayer[i]);
                     i++;
                 }
                 
@@ -594,8 +592,6 @@
 
             static SpawnInitialPiece(row, col, pieceOwner){
                 if(RoomData.isHost){
-                    this.#pointsPerPlayer[GameManager.currentPlayer] = 1;
-
                     RoomData.SendMessageToClients({
                         type: 'spawn_initial_piece',
                         row: row,
@@ -615,8 +611,6 @@
 
             static SpawnPiece(row, col, pieceOwner, spawnDirection){
                 if(RoomData.isHost){
-                    
-                    this.#pointsPerPlayer[pieceOwner]++;
                     RoomData.SendMessageToClients({
                         type: 'spawn_piece',
                         row: row,
@@ -641,7 +635,7 @@
                 }
                 
                 const cell = this.getCell(row,col);
-                const result = cell.updateCell();
+                cell.updateCell();
 
                 if(RoomData.isHost){
                     if(cell.value >= 4){
@@ -650,15 +644,6 @@
                             col: col,
                             cell: cell
                         });
-                    }
-
-                    if(result){
-                        this.#pointsPerPlayer[result.lastOwner]--;
-                        if(this.#pointsPerPlayer[result.lastOwner]===0){
-                            this.#deathPlayers.add(result.lastOwner);
-                        }
-
-                        this.#pointsPerPlayer[result.currentOwner]++;
                     }
                 }
             }
@@ -674,16 +659,7 @@
                 }
                 
                 const cell = this.getCell(row,col);
-                const result = cell.minusFour();
-
-                if(RoomData.isHost && result === true){
-                    this.#pointsPerPlayer[cell.owner]--;
-                    if(this.#pointsPerPlayer[cell.owner]===0){
-                        this.#deathPlayers.add(cell.owner);
-                    }
-
-                }
-                    
+                cell.minusFour();
             }
             
             static ExplodeCells(){
@@ -719,37 +695,26 @@
             }
             static ExplodeCell(row, col, cell){
                 this.MinusFour(row, col);
-                console.log('Explota :'+row+ ' , '+col);
                 //Up
                 if(row-1 >= 0){
                     this.SpawnPiece(row-1, col, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.UP);
                     this.#positionsToUpdate.add(`${row-1},${col}`);
-
-                    console.log('Genera :'+(row-1)+ ' , '+col);
                 }
                 //Down
                 if(row+1 < this.#boardSize){
                     this.SpawnPiece(row+1, col, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.DOWN);
                    
                     this.#positionsToUpdate.add(`${row+1},${col}`);
-
-                    
-                    console.log('Genera :'+(row+1)+ ' , '+col);
                 }
                 //Left
                 if(col-1 >= 0){
                     this.SpawnPiece(row, col-1, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.LEFT);
                     this.#positionsToUpdate.add(`${row},${col-1}`);
-
-                    
-                    console.log('Genera :'+row+ ' , '+(col-1));
                 }
                 //Right
                 if(col+1 < this.#boardSize){
                     this.SpawnPiece(row, col+1, GameManager.currentPlayer, UI.SPAWN_DIRECTIONS.RIGHT);
-                    this.#positionsToUpdate.add(`${row},${col+1}`); 
-                        
-                    console.log('Genera :'+row+ ' , '+(col+1));
+                    this.#positionsToUpdate.add(`${row},${col+1}`);
                 }
             }
 
@@ -759,10 +724,10 @@
 
                 if(RoomData.isHost){
                     this.#deathPlayers = [];
-                    this.#pointsPerPlayer = [];
+                    this.pointsPerPlayer = [];
                     let i = 0;
                     while(i< this.numberOfPlayers){
-                        this. #pointsPerPlayer.push(-1);
+                        this. pointsPerPlayer.push(-1);
                         i++;
                     }
                 }
@@ -927,8 +892,6 @@
             }
 
             static SetMyTurn(isMyTurn, isMyFirstTurn) {
-                console.log('ist '+ isMyTurn);
-                console.log('isFFFt '+ isMyFirstTurn);
                 // Seleccionar todas las celdas
                 const cells = document.querySelectorAll('.game-board-cell');
                 
@@ -1033,6 +996,8 @@
         }
         
         function joinRoom() {
+            if(RoomData.hostConnection) return;
+
             RoomData.roomId = document.getElementById('roomCode').value.trim();
             RoomData.myName = document.getElementById('player-name').value.trim();
 
@@ -1117,6 +1082,7 @@
                 RoomData.peer.destroy();
             }
             resetPlayersList();
+            RoomData.hostConnection = null;
             UI.setCurrentWindow(UI.WINDOWS.MAIN_MENU);
         }
         

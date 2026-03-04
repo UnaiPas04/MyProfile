@@ -35,8 +35,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 4. CONFIGURAR RENDERIZADOR
     const renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        alpha: true
+        antialias: false,
+        alpha: false,
+        
+        powerPreference: "high-performance",
+        failIfMajorPerformanceCaveat: false 
     });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -168,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 8. ANIMACIÓN
-    const COMPUTER_FRAME_RATE = 60;
+    const COMPUTER_FRAME_RATE = 24;
     const MOBILE_FRAME_RATE = 20;
     let t = 0;
 
