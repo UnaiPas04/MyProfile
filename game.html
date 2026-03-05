@@ -62,6 +62,14 @@
                 <button onclick="cancelRoom()" style="width: 150pt;" id="cancelBtn"
                 class="btn btn-primary w-30 rounded-4">Atrás</button>
                 
+                <select id="board-size-selector" style="display:none; width: 150pt; height: 38px;" 
+                class="btn btn-primary rounded-4" onchange="changeBoardSize(this.value)">
+                    <option value="5">Tablero 5x5</option>
+                    <option value="7">Tablero 7x7</option>
+                    <option value="9" selected>Tablero 9x9</option>
+                    <option value="11">Tablero 11x11</option>
+                    <option value="13">Tablero 13x13</option>
+                </select>
                 <div id="error-message-room" class="error w-100 mt-2"></div>
             </div>
         </div>
@@ -247,7 +255,7 @@
                         UI.showError('Sala llena');
                         break;
                     case 'start_game':
-                        GameManager.onStartGame(data.initialPlayer);
+                        GameManager.onStartGame(data.initialPlayer, data.boardSize);
                         break;
                     case 'error':
                         UI.showError(data.msg);
@@ -541,7 +549,7 @@
                     lambdaFunc();
                     return;
                 }
-                
+
                 this.#newTurnClient = lambdaFunc;
                 
             }
@@ -662,15 +670,7 @@
                 cell.addNextPiece(piece);
             }
 
-            static UpdateAndCheckCell(row, col){
-                // if(RoomData.isHost){
-                //     RoomData.SendMessageToClients({
-                //         type: 'update_and_check',
-                //         row: row,
-                //         col: col
-                //     });
-                // }
-                
+            static UpdateAndCheckCell(row, col){       
                 const cell = this.getCell(row,col);
                 cell.updateCell();
 
@@ -684,14 +684,6 @@
             }
             
             static MinusFour(row, col){
-                
-                // if(RoomData.isHost){
-                //     RoomData.SendMessageToClients({
-                //         type: 'minus_four',
-                //         row: row,
-                //         col: col
-                //     });
-                // }
                 
                 const cell = this.getCell(row,col);
                 cell.minusFour();
@@ -758,12 +750,13 @@
                 }
             }
 
-            static onStartGame(initialPlayer){
+            static onStartGame(initialPlayer, boardSize){
                 
                 this.numberOfPlayers = RoomData.players.length;
 
                 if(RoomData.isHost){
                     
+                    this.#canActThisTurn = true;
                     this.resetDeathPlayers();
                     this.pointsPerPlayer = [];
                     let i = 0;
@@ -774,7 +767,6 @@
                 }else{
                     this.clearNewTurnClient();
                 }
-            
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
                 this.#cellsAboutToExplode = [];
                 this.resetPositionsToUpdate();
@@ -782,15 +774,12 @@
 
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
                 
-                this.boardSize = 9;
+                this.boardSize = boardSize;
 
                 this.currentPlayer = initialPlayer;
-
             }
-
         }
         class UI{
-
             static WINDOWS = {
                 MAIN_MENU: 1,
                 ROOM_MENU: 2,
@@ -817,8 +806,10 @@
                 const gameDisplay = newWindow === UI.WINDOWS.GAME_MENU? 'block': 'none';
                 document.getElementById('game-menu').style.display = gameDisplay;
 
-                const startButtDisplay = (newWindow === UI.WINDOWS.ROOM_MENU && RoomData.isHost)? 'block': 'none';
-                document.getElementById('startBtn').style.display = startButtDisplay;
+                const hostOptionsDisplay = (newWindow === UI.WINDOWS.ROOM_MENU && RoomData.isHost)? 'block': 'none';
+                document.getElementById('startBtn').style.display = hostOptionsDisplay;
+                document.getElementById('board-size-selector').style.display = hostOptionsDisplay;
+                
                 
             }
 
@@ -873,6 +864,7 @@
             }
 
             static setBoard(size) {
+                const cellSizePixels = 600/size;
                 const container = document.getElementById('board-container');
                 container.innerHTML = ''; 
                 
@@ -884,6 +876,8 @@
                     
                     for (let j = 0; j < size; j++) {
                         const cell = document.createElement('td');
+                        cell.style.width = cellSizePixels+'px';
+                        cell.style.height = cellSizePixels+'px';
                         cell.dataset.row = i;
                         cell.dataset.col = j;
                         cell.className = 'game-board-cell';
@@ -1110,13 +1104,24 @@
             const initialPlayer = GameManager.randomPlayer;
             
             //empezarla nosotros
-            GameManager.onStartGame(initialPlayer);
+            if(!selectedBoardSize){
+                const val = document.getElementById('board-size-selector').value;
+                selectedBoardSize = parseInt(val);
+            }
+            GameManager.onStartGame(initialPlayer, selectedBoardSize);
 
             RoomData.SendMessageToClients({
                 type: 'start_game',
-                initialPlayer: initialPlayer
+                initialPlayer: initialPlayer,
+                boardSize:selectedBoardSize
             });
             
+        }
+
+        let selectedBoardSize;
+        function changeBoardSize(valor){
+            const boardSize = parseInt(valor);//número de casillas de alto y ancho
+            GameManager.boardSize = boardSize;
         }
 
         function cancelRoom() {
