@@ -253,7 +253,13 @@
                         UI.showError(data.msg);
                         break;
                     case 'new_turn':
-                        GameManager.newTurnClient(data.id);
+                        
+                        if(!data.waitToEndSimulation){
+                            GameManager.waitingForNewTurnInstructions = true;
+                        }
+                        //Asignar
+                        GameManager.assignNewTurnClient(() => GameManager.newTurnClient(data.id));
+                        
                         break;
                     case 'client_Click':
                         if(clientID === this.getPlayerPeerId(GameManager.currentPlayer)){
@@ -262,10 +268,10 @@
                         }
                         break;
                     case 'spawn_initial_piece':
-                        GameManager.SpawnInitialPiece(data.row, data.col, data.ownerId);
+                        GameManager.SpawnFirstTurnPiece(data.row, data.col, data.ownerId);
                         break;
                     case 'spawn_piece':
-                        GameManager.SpawnPiece(data.row, data.col, data.ownerId, data.spawnDirection);
+                        GameManager.SpawnInitialPiece(data.row, data.col, data.ownerId, data.spawnDirection);
                         break;
                     case 'update_and_check':
                         GameManager.UpdateAndCheckCell(data.row, data.col);
@@ -477,7 +483,7 @@
             }
 
             static #canActThisTurn = true; //solo una accion por turno, la usa el server solo
-            static newTurnHost(){
+            static newTurnHost(waitToEndSimulation){
                 if(RoomData.isHost){
                     
                     let i = 0;
@@ -508,20 +514,46 @@
                         }
                         RoomData.SendMessageToClients({
                             type: 'new_turn',
-                            id: this.currentPlayer
+                            id: this.currentPlayer,
+                            waitToEndSimulation: waitToEndSimulation
                         });
                         this.#canActThisTurn = true;
                     }
                 }
             }
 
+            static #newTurnClient;
+            static waitingForNewTurnInstructions = false;
+            static NewTurnClientExec() {
+                if(this.#newTurnClient){
+                    this.#newTurnClient();
+                    this.clearNewTurnClient();
+                }
+                else{
+                    this.waitingForNewTurnInstructions = true;
+                }
+            }
+            static assignNewTurnClient(lambdaFunc) {
+                if (typeof lambdaFunc !== 'function') throw new Error('Se esperaba función');
+
+                if(this.waitingForNewTurnInstructions){
+                    this.waitingForNewTurnInstructions = false;
+                    lambdaFunc();
+                    return;
+                }
+                
+                this.#newTurnClient = lambdaFunc;
+                
+            }
+            static clearNewTurnClient() {
+                this.#newTurnClient = null;
+            }
+
             static newTurnClient(currentPlayer){
                 if(this.isMyFirstTurn){
                     this.#initialTurn = false;
                 }
-
                 this.currentPlayer = currentPlayer;
-               
             }
 
             static onCellClick_DoOrReq(row, col){
@@ -554,10 +586,9 @@
                 }
                 
                 const cell = this.getCell(row,col);
+
                 this.SpawnPiecePhase(row, col, firstTurn, id, cell);
             }
-
-           
 
             static SpawnPiecePhase(row, col, firstTurn, id, cell){
                 
@@ -567,9 +598,8 @@
                     if(cell.hasOwner === false){
 
                         this.#canActThisTurn = false; //este no es necesario, pero por si luego meto timeOut
-                        this.SpawnInitialPiece(row, col, id);
-                        this.newTurnHost();
-
+                        this.SpawnFirstTurnPiece(row, col, id);
+                        this.newTurnHost(false);
                     }
                 }
                 else{
@@ -577,20 +607,12 @@
                     if(cell.isOwner(id)){
                         
                         this.#canActThisTurn = false;
-                        this.SpawnPiece(row, col, id, UI.SPAWN_DIRECTIONS.DOWN);
-                        
-                        setTimeout(() => {
-                            //actualizar el valor donde la pieza cae dentro de n segundos (lo q tarda en caer)
-                            this.UpdateAndCheckCell(row, col);
-                            
-                            this.ExplodeCells();
-
-                        }, 300);
+                        this.SpawnInitialPiece(row, col, id, UI.SPAWN_DIRECTIONS.DOWN);
                     }
                 }
             }
 
-            static SpawnInitialPiece(row, col, pieceOwner){
+            static SpawnFirstTurnPiece(row, col, pieceOwner){
                 if(RoomData.isHost){
                     RoomData.SendMessageToClients({
                         type: 'spawn_initial_piece',
@@ -609,7 +631,7 @@
                 cell.value = 3;
             }
 
-            static SpawnPiece(row, col, pieceOwner, spawnDirection){
+            static SpawnInitialPiece(row, col, pieceOwner, spawnDirection){
                 if(RoomData.isHost){
                     RoomData.SendMessageToClients({
                         type: 'spawn_piece',
@@ -623,40 +645,53 @@
                 const cell = this.getCell(row,col);
                 const piece = UI.SpawnPiece(row, col, spawnDirection, 1, pieceOwner);
                 cell.addNextPiece(piece);
+
+                setTimeout(() => {
+                    //actualizar el valor donde la pieza cae dentro de n segundos (lo q tarda en caer)
+                    this.UpdateAndCheckCell(row, col);
+                    
+                    this.ExplodeCells();
+
+                }, 300);
+            }
+
+            static SpawnPiece(row, col, pieceOwner, spawnDirection){
+
+                const cell = this.getCell(row,col);
+                const piece = UI.SpawnPiece(row, col, spawnDirection, 1, pieceOwner);
+                cell.addNextPiece(piece);
             }
 
             static UpdateAndCheckCell(row, col){
-                if(RoomData.isHost){
-                    RoomData.SendMessageToClients({
-                        type: 'update_and_check',
-                        row: row,
-                        col: col
-                    });
-                }
+                // if(RoomData.isHost){
+                //     RoomData.SendMessageToClients({
+                //         type: 'update_and_check',
+                //         row: row,
+                //         col: col
+                //     });
+                // }
                 
                 const cell = this.getCell(row,col);
                 cell.updateCell();
 
-                if(RoomData.isHost){
-                    if(cell.value >= 4){
-                        this.#cellsAboutToExplode.push({
-                            row: row,
-                            col: col,
-                            cell: cell
-                        });
-                    }
+                if(cell.value >= 4){
+                    this.#cellsAboutToExplode.push({
+                        row: row,
+                        col: col,
+                        cell: cell
+                    });
                 }
             }
             
             static MinusFour(row, col){
                 
-                if(RoomData.isHost){
-                    RoomData.SendMessageToClients({
-                        type: 'minus_four',
-                        row: row,
-                        col: col
-                    });
-                }
+                // if(RoomData.isHost){
+                //     RoomData.SendMessageToClients({
+                //         type: 'minus_four',
+                //         row: row,
+                //         col: col
+                //     });
+                // }
                 
                 const cell = this.getCell(row,col);
                 cell.minusFour();
@@ -690,7 +725,12 @@
                     },200);
                 }
                 else{
-                    this.newTurnHost();
+                    if(RoomData.isHost){
+                        this.newTurnHost(true);
+                    }
+                    else{
+                        GameManager.NewTurnClientExec();
+                    }
                 }
             }
             static ExplodeCell(row, col, cell){
@@ -723,19 +763,21 @@
                 this.numberOfPlayers = RoomData.players.length;
 
                 if(RoomData.isHost){
-                    this.#deathPlayers = [];
+                    
+                    this.resetDeathPlayers();
                     this.pointsPerPlayer = [];
                     let i = 0;
                     while(i< this.numberOfPlayers){
                         this. pointsPerPlayer.push(-1);
                         i++;
                     }
+                }else{
+                    this.clearNewTurnClient();
                 }
             
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
                 this.#cellsAboutToExplode = [];
                 this.resetPositionsToUpdate();
-                this.resetDeathPlayers();
                 
 
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
