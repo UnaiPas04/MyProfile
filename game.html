@@ -71,6 +71,15 @@
                     <option value="13">Tablero 13x13</option>
                 </select>
                 <div id="error-message-room" class="error w-100 mt-2"></div>
+
+                <select id="wall-density-selector" style="display:none; width: 150pt; height: 38px;" 
+                class="btn btn-primary rounded-4" onchange="changeWallDensity(this.value)">
+                    <option value="0" selected>No Walls</option>
+                    <option value="3">30% Walls</option>
+                    <option value="5">50% Walls</option>
+                    <option value="7">70% Walls</option>
+                </select>
+                <div id="error-message-room" class="error w-100 mt-2"></div>
             </div>
         </div>
         
@@ -255,7 +264,7 @@
                         UI.showError('Sala llena');
                         break;
                     case 'start_game':
-                        GameManager.onStartGame(data.initialPlayer, data.boardSize, data.randomSeed);
+                        GameManager.onStartGame(data.initialPlayer, data.boardSize, data.randomSeed, data.density);
                         break;
                     case 'error':
                         UI.showError(data.msg);
@@ -497,6 +506,7 @@
             static resetDeathPlayers(){ this.#deathPlayers = new Set(); }
 
             static randomSeed = 0;
+            static density = 0.0; // proporción de muros deseada (60% muros → 40% espacios libres)
             // static set boardSize(value){
                 
             //     UI.setBoard(value);
@@ -521,8 +531,8 @@
             static set boardSize(value) {
                 
                 const randomGenerator = new RandomGenerator(this.randomSeed);
-                const density = 0.4; // proporción de muros deseada (60% muros → 40% espacios libres)
-                
+                const density = this.density;
+
                 // Inicializar todo como muros
                 this.#cells = [];
                 for (let i = 0; i < value; i++) {
@@ -558,7 +568,7 @@
                             
                             if (muroCount > 0) {
                                 candidates.push({ i, j });
-                                weights.push(Math.pow(muroCount, 16)); // peso = número de vecinos muro
+                                weights.push(Math.pow(20, muroCount)); // peso = número de vecinos muro
                             }
                         }
                     }
@@ -860,7 +870,7 @@
                 }
             }
 
-            static onStartGame(initialPlayer, boardSize, randomSeed){
+            static onStartGame(initialPlayer, boardSize, randomSeed, density){
                 
                 this.numberOfPlayers = RoomData.players.length;
 
@@ -876,6 +886,7 @@
                     }
                 }else{
                     this.clearNewTurnClient();
+                    this.density = density;
                 }
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
                 this.#cellsAboutToExplode = [];
@@ -920,6 +931,7 @@
                 const hostOptionsDisplay = (newWindow === UI.WINDOWS.ROOM_MENU && RoomData.isHost)? 'block': 'none';
                 document.getElementById('startBtn').style.display = hostOptionsDisplay;
                 document.getElementById('board-size-selector').style.display = hostOptionsDisplay;
+                document.getElementById('wall-density-selector').style.display = hostOptionsDisplay;
                 
                 
             }
@@ -1252,21 +1264,26 @@
                 const val = document.getElementById('board-size-selector').value;
                 selectedBoardSize = parseInt(val);
             }
-            GameManager.onStartGame(initialPlayer, selectedBoardSize, randomSeed);
+            GameManager.onStartGame(initialPlayer, selectedBoardSize, randomSeed, GameManager.density);
 
             RoomData.SendMessageToClients({
                 type: 'start_game',
                 initialPlayer: initialPlayer,
                 boardSize:selectedBoardSize,
-                randomSeed: randomSeed
+                randomSeed: randomSeed,
+                density: GameManager.density
             });
             
         }
 
         let selectedBoardSize;
-        function changeBoardSize(valor){
-            const boardSize = parseInt(valor);//número de casillas de alto y ancho
+        function changeBoardSize(value){
+            const boardSize = parseInt(value);//número de casillas de alto y ancho
             GameManager.boardSize = boardSize;
+        }
+        function changeWallDensity(value){
+            const density = parseInt(value);
+            GameManager.density = density/10;
         }
 
         function cancelRoom() {
