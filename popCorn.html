@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Color Wars</title>
+    <title>Pop Corn</title>
     <!-- Peer 2 Peer -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
@@ -24,7 +24,10 @@
                 <input type="text" id="player-name" placeholder="Tu nombre" maxlength="20"
                 class="form-control text-center rounded-4">
                 <input id="roomCode" placeholder="Código de sala" maxlength="4"
-                class="form-control text-center rounded-4">
+                class="form-control text-center rounded-4"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                oninput= "this.value = this.value.replace(/[^0-9]/g, '')">
 
                 <div class="w-100">
                     <button onclick="createRoom()" id="createBtn"
