@@ -509,27 +509,7 @@
             static resetDeathPlayers(){ this.#deathPlayers = new Set(); }
 
             static randomSeed = 0;
-            static density = 0.0; // proporción de muros deseada (60% muros → 40% espacios libres)
-            // static set boardSize(value){
-                
-            //     UI.setBoard(value);
-
-            //     const randomGenerator = new RandomGenerator(this.randomSeed);
-            //     const density = 0.6;
-
-                
-            //     //inicial #cell como array nxn
-            //     this.#cells = [];
-    
-            //     for (let i = 0; i < value; i++) {
-            //         this.#cells[i] = [];
-            //         for (let j = 0; j < value; j++) {
-            //             this.#cells[i][j] = new Cell();
-            //         }
-            //     }
-
-            //     this.#boardSize = value;
-            // }
+            static density = 0.0; // proporción de muros deseada (p ej 60% muros -> d=0.6)
 
             static set boardSize(value) {
                 
@@ -546,7 +526,7 @@
                 }
                 
                 // Casilla central (sin muro)
-                const center = Math.floor((value - 1) / 2);
+                const center = Math.floor(value / 2);
                 this.#cells[center][center] = new Cell(); // sin muro
                 
                 let noMurosCount = 1; // contador de celdas sin muro
@@ -571,7 +551,21 @@
                             
                             if (muroCount > 0) {
                                 candidates.push({ i, j });
-                                weights.push(Math.pow(20, muroCount)); // peso = número de vecinos muro
+                                let weight = 0;
+                                switch(muroCount){
+                                    case 1: 
+                                        weight = 1;
+                                        break;
+                                    case 2:
+                                        weight = 100;
+                                        break;
+                                    case 3:
+                                        weight = 1000;
+                                        break;
+                                    default:
+                                        weight = 1;
+                                }
+                                weights.push(weight);
                             }
                         }
                     }
@@ -889,7 +883,6 @@
                     }
                 }else{
                     this.clearNewTurnClient();
-                    this.density = density;
                 }
                 this.#initialTurn = true; //reseteamos por si se cancelo partida y se volvió
                 this.#cellsAboutToExplode = [];
@@ -899,6 +892,8 @@
                 UI.setCurrentWindow(UI.WINDOWS.GAME_MENU);
                 
                 this.randomSeed = randomSeed;
+                
+                this.density = density;
                 this.boardSize = boardSize;
 
                 this.currentPlayer = initialPlayer;
@@ -1267,14 +1262,20 @@
                 const val = document.getElementById('board-size-selector').value;
                 selectedBoardSize = parseInt(val);
             }
-            GameManager.onStartGame(initialPlayer, selectedBoardSize, randomSeed, GameManager.density);
+
+            if(!wallDensity){
+                const val = document.getElementById('wall-density-selector').value;
+                wallDensity = parseInt(val)/10;
+            }
+
+            GameManager.onStartGame(initialPlayer, selectedBoardSize, randomSeed, wallDensity);
 
             RoomData.SendMessageToClients({
                 type: 'start_game',
                 initialPlayer: initialPlayer,
                 boardSize:selectedBoardSize,
                 randomSeed: randomSeed,
-                density: GameManager.density
+                density: wallDensity
             });
             
         }
@@ -1284,9 +1285,10 @@
             const boardSize = parseInt(value);//número de casillas de alto y ancho
             GameManager.boardSize = boardSize;
         }
+        let wallDensity;
         function changeWallDensity(value){
             const density = parseInt(value);
-            GameManager.density = density/10;
+            wallDensity = density/10;
         }
 
         function cancelRoom() {
